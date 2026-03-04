@@ -57,6 +57,11 @@ func InitDB() error {
 	return nil
 }
 
+// GetDB returns the database pool instance
+func GetDB() *pgxpool.Pool {
+	return Pool
+}
+
 // Close closes the database connection pool
 func Close() {
 	if Pool != nil {

@@ -15,6 +15,64 @@ definitions:
       success:
         type: boolean
     type: object
+  models.AdjustGoldRequest:
+    properties:
+      amount:
+        description: Can be negative
+        type: integer
+      reason:
+        minLength: 10
+        type: string
+    required:
+    - amount
+    - reason
+    type: object
+  models.AdjustGoldResponse:
+    properties:
+      action_id:
+        type: string
+      adjustment:
+        type: integer
+      new_balance:
+        type: integer
+      old_balance:
+        type: integer
+      reason:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.AdminAction:
+    properties:
+      action_type:
+        type: string
+      admin_id:
+        type: string
+      created_at:
+        type: string
+      details:
+        additionalProperties: {}
+        type: object
+      id:
+        type: string
+      ip_address:
+        type: string
+      target_user_id:
+        type: string
+    type: object
+  models.AdminActionsResponse:
+    properties:
+      actions:
+        items:
+          $ref: '#/definitions/models.AdminAction'
+        type: array
+      page:
+        type: integer
+      per_page:
+        type: integer
+      total_count:
+        type: integer
+    type: object
   models.AuthRequest:
     properties:
       displayName:
@@ -33,6 +91,51 @@ definitions:
         type: string
       user:
         $ref: '#/definitions/models.User'
+    type: object
+  models.BanUserRequest:
+    properties:
+      banned_until:
+        description: NULL = permanent
+        type: string
+      reason:
+        minLength: 10
+        type: string
+    required:
+    - reason
+    type: object
+  models.BanUserResponse:
+    properties:
+      ban_id:
+        type: string
+      banned_until:
+        type: string
+      is_permanent:
+        type: boolean
+      reason:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.ExportUserDataResponse:
+    properties:
+      ban_history:
+        items:
+          $ref: '#/definitions/models.UserBan'
+        type: array
+      exported_at:
+        type: string
+      level_completions:
+        items:
+          additionalProperties: {}
+          type: object
+        type: array
+      talents:
+        items:
+          additionalProperties: {}
+          type: object
+        type: array
+      user:
+        $ref: '#/definitions/models.UserProfile'
     type: object
   models.GlobalLeaderboardResponse:
     properties:
@@ -166,6 +269,29 @@ definitions:
       totalStars:
         type: integer
     type: object
+  models.SystemStatsResponse:
+    properties:
+      active_this_month:
+        type: integer
+      active_this_week:
+        type: integer
+      active_today:
+        type: integer
+      admin_actions_today:
+        type: integer
+      banned_users:
+        type: integer
+      last_updated:
+        type: string
+      levels_completed:
+        type: integer
+      total_gold_in_game:
+        type: integer
+      total_stars_earned:
+        type: integer
+      total_users:
+        type: integer
+    type: object
   models.TalentUpgradeRequest:
     properties:
       talentId:
@@ -189,6 +315,22 @@ definitions:
       success:
         type: boolean
       talentId:
+        type: string
+    type: object
+  models.UnbanUserRequest:
+    properties:
+      reason:
+        type: string
+    required:
+    - reason
+    type: object
+  models.UnbanUserResponse:
+    properties:
+      unban_reason:
+        type: string
+      unbanned_at:
+        type: string
+      user_id:
         type: string
     type: object
   models.User:
@@ -234,6 +376,68 @@ definitions:
       totalStarsCollected:
         type: integer
     type: object
+  models.UserBan:
+    properties:
+      banned_by:
+        type: string
+      banned_until:
+        description: NULL = permanent
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      reason:
+        type: string
+      unban_reason:
+        type: string
+      unbanned_at:
+        type: string
+      unbanned_by:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.UserProfile:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      is_admin:
+        type: boolean
+      is_banned:
+        type: boolean
+      last_login_at:
+        type: string
+      levels_completed:
+        type: integer
+      playfab_id:
+        type: string
+      total_gold:
+        type: integer
+      total_stars:
+        type: integer
+      username:
+        type: string
+    type: object
+  models.UserSearchResponse:
+    properties:
+      page:
+        type: integer
+      per_page:
+        type: integer
+      total_count:
+        type: integer
+      users:
+        items:
+          $ref: '#/definitions/models.UserProfile'
+        type: array
+    type: object
   models.UserTalent:
     properties:
       currentLevel:
@@ -261,6 +465,646 @@ info:
   title: GameFeel Backend API
   version: "1.0"
 paths:
+  /admin/actions:
+    get:
+      description: Get audit log of all admin actions (admin only)
+      parameters:
+      - default: Bearer
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 50
+        description: Results per page (max 100)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Admin actions
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.AdminActionsResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "403":
+          description: Forbidden - Admin only
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get admin actions log
+      tags:
+      - Admin
+  /admin/stats/overview:
+    get:
+      description: Get system overview statistics (admin only)
+      parameters:
+      - default: Bearer
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: System stats
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.SystemStatsResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "403":
+          description: Forbidden - Admin only
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get system statistics
+      tags:
+      - Admin
+  /admin/users/{userId}/adjust-gold:
+    post:
+      consumes:
+      - application/json
+      description: Manually adjust user's gold balance (admin only)
+      parameters:
+      - default: Bearer
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: User ID (UUID)
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Gold adjustment request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.AdjustGoldRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Gold adjusted
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.AdjustGoldResponse'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "403":
+          description: Forbidden - Admin only
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Adjust user gold
+      tags:
+      - Admin
+  /admin/users/{userId}/ban:
+    post:
+      consumes:
+      - application/json
+      description: Ban a user with reason and optional duration (admin only)
+      parameters:
+      - default: Bearer
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: User ID (UUID)
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Ban request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.BanUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User banned
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.BanUserResponse'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "403":
+          description: Forbidden - Admin only
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Ban user
+      tags:
+      - Admin
+  /admin/users/{userId}/ban-history:
+    get:
+      description: Get ban history for a user (admin only)
+      parameters:
+      - default: Bearer
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: User ID (UUID)
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ban history
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.UserBan'
+                  type: array
+              type: object
+        "400":
+          description: Invalid user ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "403":
+          description: Forbidden - Admin only
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get ban history
+      tags:
+      - Admin
+  /admin/users/{userId}/export-data:
+    get:
+      description: Export all user data for GDPR compliance (admin only)
+      parameters:
+      - default: Bearer
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: User ID (UUID)
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User data
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ExportUserDataResponse'
+              type: object
+        "400":
+          description: Invalid user ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "403":
+          description: Forbidden - Admin only
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Export user data
+      tags:
+      - Admin
+  /admin/users/{userId}/profile:
+    get:
+      description: Get detailed profile for a specific user (admin only)
+      parameters:
+      - default: Bearer
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: User ID (UUID)
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.UserProfile'
+              type: object
+        "400":
+          description: Invalid user ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "403":
+          description: Forbidden - Admin only
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "404":
+          description: User not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - Admin
+  /admin/users/{userId}/unban:
+    post:
+      consumes:
+      - application/json
+      description: Remove active ban from a user (admin only)
+      parameters:
+      - default: Bearer
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: User ID (UUID)
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Unban request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UnbanUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User unbanned
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.UnbanUserResponse'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "403":
+          description: Forbidden - Admin only
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Unban user
+      tags:
+      - Admin
+  /admin/users/search:
+    get:
+      description: Search users by PlayFab ID, email, or username (admin only)
+      parameters:
+      - default: Bearer
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Search query
+        in: query
+        minLength: 3
+        name: q
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Results per page (max 100)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Search results
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.UserSearchResponse'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "403":
+          description: Forbidden - Admin only
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Search users
+      tags:
+      - Admin
   /analytics/level-stats/{levelId}:
     get:
       description: Get aggregated analytics for a specific level

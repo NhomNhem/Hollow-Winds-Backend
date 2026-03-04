@@ -164,6 +164,7 @@ func main() {
 	levelHandler := api.NewLevelHandler()
 	talentHandler := api.NewTalentHandler()
 	leaderboardHandler := api.NewLeaderboardHandler()
+	adminHandler := api.NewAdminHandler()
 	
 	// Auth routes (public)
 	auth := apiV1.Group("/auth")
@@ -186,6 +187,18 @@ func main() {
 	// Analytics routes
 	analytics := apiV1.Group("/analytics")
 	analytics.Get("/level-stats/:levelId", leaderboardHandler.GetLevelStats)
+
+	// Admin routes (require JWT + admin role)
+	admin := apiV1.Group("/admin", middleware.AuthMiddleware(), middleware.AdminMiddleware())
+	admin.Get("/users/search", adminHandler.SearchUsers)
+	admin.Get("/users/:userId/profile", adminHandler.GetUserProfile)
+	admin.Post("/users/:userId/adjust-gold", adminHandler.AdjustGold)
+	admin.Post("/users/:userId/ban", adminHandler.BanUser)
+	admin.Post("/users/:userId/unban", adminHandler.UnbanUser)
+	admin.Get("/users/:userId/ban-history", adminHandler.GetBanHistory)
+	admin.Get("/users/:userId/export-data", adminHandler.ExportUserData)
+	admin.Get("/actions", adminHandler.GetAdminActions)
+	admin.Get("/stats/overview", adminHandler.GetSystemStats)
 
 	// Get port from env or default to 8080
 	port := getEnv("PORT", "8080")
