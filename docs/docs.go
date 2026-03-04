@@ -23,6 +23,71 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/analytics/level-stats/{levelId}": {
+            "get": {
+                "description": "Get aggregated analytics for a specific level",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Analytics"
+                ],
+                "summary": "Get level statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Level ID (e.g., 1-1)",
+                        "name": "levelId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Map ID filter (optional)",
+                        "name": "mapId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Level statistics",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.LevelStatsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/models.APIError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "security": [
@@ -98,6 +163,227 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Invalid PlayFab token",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/models.APIError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/models.APIError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/leaderboard/global": {
+            "get": {
+                "description": "Get top players ranked by total stars collected",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Leaderboard"
+                ],
+                "summary": "Get global leaderboard",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 100,
+                        "description": "Results per page (max 100)",
+                        "name": "perPage",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Global leaderboard",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.GlobalLeaderboardResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/models.APIError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/leaderboard/level/{levelId}": {
+            "get": {
+                "description": "Get best times for a specific level",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Leaderboard"
+                ],
+                "summary": "Get level leaderboard",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Level ID (e.g., 1-1)",
+                        "name": "levelId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Map ID filter (optional)",
+                        "name": "mapId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 100,
+                        "description": "Result limit (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Level leaderboard",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.LevelLeaderboardResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/models.APIError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/leaderboard/player/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get authenticated player's global rank and statistics",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Leaderboard"
+                ],
+                "summary": "Get player leaderboard stats",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer",
+                        "description": "Bearer JWT token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Player stats",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.PlayerStatsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "allOf": [
                                 {
@@ -501,6 +787,61 @@ const docTemplate = `{
                 }
             }
         },
+        "models.GlobalLeaderboardResponse": {
+            "type": "object",
+            "properties": {
+                "leaderboard": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.LeaderboardEntry"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "perPage": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.LeaderboardEntry": {
+            "type": "object",
+            "properties": {
+                "bestTime": {
+                    "type": "number"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "firstCompleted": {
+                    "type": "string"
+                },
+                "levelsCompleted": {
+                    "type": "integer"
+                },
+                "maxMapUnlocked": {
+                    "type": "integer"
+                },
+                "playCount": {
+                    "type": "integer"
+                },
+                "playerId": {
+                    "type": "string"
+                },
+                "rank": {
+                    "type": "integer"
+                },
+                "stars": {
+                    "type": "integer"
+                },
+                "totalStars": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.LevelCompletionRequest": {
             "type": "object",
             "required": [
@@ -566,6 +907,81 @@ const docTemplate = `{
                 },
                 "success": {
                     "type": "boolean"
+                }
+            }
+        },
+        "models.LevelLeaderboardResponse": {
+            "type": "object",
+            "properties": {
+                "leaderboard": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.LeaderboardEntry"
+                    }
+                },
+                "levelId": {
+                    "type": "string"
+                },
+                "mapId": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.LevelStatsResponse": {
+            "type": "object",
+            "properties": {
+                "averageStars": {
+                    "type": "number"
+                },
+                "averageTime": {
+                    "type": "number"
+                },
+                "bestTime": {
+                    "type": "number"
+                },
+                "completionRate": {
+                    "type": "number"
+                },
+                "levelId": {
+                    "type": "string"
+                },
+                "mapId": {
+                    "type": "string"
+                },
+                "totalPlays": {
+                    "type": "integer"
+                },
+                "uniquePlayers": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.PlayerStatsResponse": {
+            "type": "object",
+            "properties": {
+                "averageStars": {
+                    "type": "number"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "globalRank": {
+                    "type": "integer"
+                },
+                "levelsCompleted": {
+                    "type": "integer"
+                },
+                "maxMapUnlocked": {
+                    "type": "integer"
+                },
+                "playerId": {
+                    "type": "string"
+                },
+                "totalStars": {
+                    "type": "integer"
                 }
             }
         },

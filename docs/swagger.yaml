@@ -34,6 +34,42 @@ definitions:
       user:
         $ref: '#/definitions/models.User'
     type: object
+  models.GlobalLeaderboardResponse:
+    properties:
+      leaderboard:
+        items:
+          $ref: '#/definitions/models.LeaderboardEntry'
+        type: array
+      page:
+        type: integer
+      perPage:
+        type: integer
+      total:
+        type: integer
+    type: object
+  models.LeaderboardEntry:
+    properties:
+      bestTime:
+        type: number
+      displayName:
+        type: string
+      firstCompleted:
+        type: string
+      levelsCompleted:
+        type: integer
+      maxMapUnlocked:
+        type: integer
+      playCount:
+        type: integer
+      playerId:
+        type: string
+      rank:
+        type: integer
+      stars:
+        type: integer
+      totalStars:
+        type: integer
+    type: object
   models.LevelCompletionRequest:
     properties:
       counterCount:
@@ -80,6 +116,55 @@ definitions:
         type: integer
       success:
         type: boolean
+    type: object
+  models.LevelLeaderboardResponse:
+    properties:
+      leaderboard:
+        items:
+          $ref: '#/definitions/models.LeaderboardEntry'
+        type: array
+      levelId:
+        type: string
+      mapId:
+        type: string
+      total:
+        type: integer
+    type: object
+  models.LevelStatsResponse:
+    properties:
+      averageStars:
+        type: number
+      averageTime:
+        type: number
+      bestTime:
+        type: number
+      completionRate:
+        type: number
+      levelId:
+        type: string
+      mapId:
+        type: string
+      totalPlays:
+        type: integer
+      uniquePlayers:
+        type: integer
+    type: object
+  models.PlayerStatsResponse:
+    properties:
+      averageStars:
+        type: number
+      displayName:
+        type: string
+      globalRank:
+        type: integer
+      levelsCompleted:
+        type: integer
+      maxMapUnlocked:
+        type: integer
+      playerId:
+        type: string
+      totalStars:
+        type: integer
     type: object
   models.TalentUpgradeRequest:
     properties:
@@ -176,6 +261,43 @@ info:
   title: GameFeel Backend API
   version: "1.0"
 paths:
+  /analytics/level-stats/{levelId}:
+    get:
+      description: Get aggregated analytics for a specific level
+      parameters:
+      - description: Level ID (e.g., 1-1)
+        in: path
+        name: levelId
+        required: true
+        type: string
+      - description: Map ID filter (optional)
+        in: query
+        name: mapId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Level statistics
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.LevelStatsResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      summary: Get level statistics
+      tags:
+      - Analytics
   /auth/login:
     post:
       consumes:
@@ -238,6 +360,131 @@ paths:
       summary: Login with PlayFab
       tags:
       - Authentication
+  /leaderboard/global:
+    get:
+      description: Get top players ranked by total stars collected
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 100
+        description: Results per page (max 100)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Global leaderboard
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.GlobalLeaderboardResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      summary: Get global leaderboard
+      tags:
+      - Leaderboard
+  /leaderboard/level/{levelId}:
+    get:
+      description: Get best times for a specific level
+      parameters:
+      - description: Level ID (e.g., 1-1)
+        in: path
+        name: levelId
+        required: true
+        type: string
+      - description: Map ID filter (optional)
+        in: query
+        name: mapId
+        type: string
+      - default: 100
+        description: Result limit (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Level leaderboard
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.LevelLeaderboardResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      summary: Get level leaderboard
+      tags:
+      - Leaderboard
+  /leaderboard/player/me:
+    get:
+      description: Get authenticated player's global rank and statistics
+      parameters:
+      - default: Bearer
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Player stats
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PlayerStatsResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get player leaderboard stats
+      tags:
+      - Leaderboard
   /levels/complete:
     post:
       consumes:

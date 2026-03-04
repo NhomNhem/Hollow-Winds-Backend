@@ -163,6 +163,7 @@ func main() {
 	authHandler := api.NewAuthHandler()
 	levelHandler := api.NewLevelHandler()
 	talentHandler := api.NewTalentHandler()
+	leaderboardHandler := api.NewLeaderboardHandler()
 	
 	// Auth routes (public)
 	auth := apiV1.Group("/auth")
@@ -175,6 +176,16 @@ func main() {
 	talents := apiV1.Group("/talents", middleware.AuthMiddleware())
 	talents.Get("/", talentHandler.GetTalents)
 	talents.Post("/upgrade", talentHandler.UpgradeTalent)
+
+	// Leaderboard routes
+	leaderboard := apiV1.Group("/leaderboard")
+	leaderboard.Get("/global", leaderboardHandler.GetGlobalLeaderboard)
+	leaderboard.Get("/level/:levelId", leaderboardHandler.GetLevelLeaderboard)
+	leaderboard.Get("/player/me", middleware.AuthMiddleware(), leaderboardHandler.GetPlayerStats)
+
+	// Analytics routes
+	analytics := apiV1.Group("/analytics")
+	analytics.Get("/level-stats/:levelId", leaderboardHandler.GetLevelStats)
 
 	// Get port from env or default to 8080
 	port := getEnv("PORT", "8080")
