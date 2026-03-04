@@ -22,7 +22,19 @@ func NewLevelHandler() *LevelHandler {
 }
 
 // CompleteLevel handles level completion submission
-// POST /api/v1/levels/complete
+// @Summary Complete a level
+// @Description Submit level completion with anti-cheat validation
+// @Tags Levels
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer JWT token" default(Bearer )
+// @Param request body models.LevelCompletionRequest true "Level completion data"
+// @Success 200 {object} models.APIResponse{data=models.LevelCompletionResponse} "Level completed successfully"
+// @Failure 400 {object} models.APIResponse{error=models.APIError} "Invalid request or cheating detected"
+// @Failure 401 {object} models.APIResponse{error=models.APIError} "Unauthorized"
+// @Failure 500 {object} models.APIResponse{error=models.APIError} "Internal server error"
+// @Router /levels/complete [post]
+// @Security BearerAuth
 func (h *LevelHandler) CompleteLevel(c *fiber.Ctx) error {
 	// Get user ID from context (set by auth middleware)
 	userIDStr, ok := c.Locals("userId").(string)

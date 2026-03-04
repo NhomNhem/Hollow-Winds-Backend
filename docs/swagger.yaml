@@ -1,0 +1,423 @@
+basePath: /api/v1
+definitions:
+  models.APIError:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+    type: object
+  models.APIResponse:
+    properties:
+      data: {}
+      error:
+        $ref: '#/definitions/models.APIError'
+      success:
+        type: boolean
+    type: object
+  models.AuthRequest:
+    properties:
+      displayName:
+        type: string
+      playfabId:
+        type: string
+    required:
+    - playfabId
+    type: object
+  models.AuthResponse:
+    properties:
+      expiresIn:
+        description: seconds
+        type: integer
+      jwt:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  models.LevelCompletionRequest:
+    properties:
+      counterCount:
+        minimum: 0
+        type: integer
+      dashCount:
+        minimum: 0
+        type: integer
+      finalHp:
+        minimum: 0
+        type: number
+      levelId:
+        type: string
+      mapId:
+        type: string
+      timeSeconds:
+        type: number
+      vulnerableKills:
+        minimum: 0
+        type: integer
+    required:
+    - finalHp
+    - levelId
+    - mapId
+    - timeSeconds
+    type: object
+  models.LevelCompletionResponse:
+    properties:
+      goldEarned:
+        type: integer
+      isFirstCompletion:
+        type: boolean
+      mapUnlocked:
+        type: string
+      newBestTime:
+        type: boolean
+      newTotalGold:
+        type: integer
+      newTotalStars:
+        type: integer
+      nextLevelUnlocked:
+        type: string
+      starsEarned:
+        type: integer
+      success:
+        type: boolean
+    type: object
+  models.TalentUpgradeRequest:
+    properties:
+      talentId:
+        type: string
+    required:
+    - talentId
+    type: object
+  models.TalentUpgradeResponse:
+    properties:
+      goldSpent:
+        type: integer
+      newLevel:
+        type: integer
+      newTotalGold:
+        type: integer
+      nextLevelCost:
+        type: integer
+      statBonus:
+        description: e.g., "+5% HP", "+3% Damage"
+        type: string
+      success:
+        type: boolean
+      talentId:
+        type: string
+    type: object
+  models.User:
+    properties:
+      banReason:
+        type: string
+      bannedAt:
+        type: string
+      createdAt:
+        description: Metadata
+        type: string
+      deletedAt:
+        description: GDPR
+        type: string
+      diamonds:
+        type: integer
+      displayName:
+        type: string
+      facebookId:
+        description: Social
+        type: string
+      gold:
+        description: Currency
+        type: integer
+      googleId:
+        type: string
+      id:
+        type: string
+      isBanned:
+        description: Flags
+        type: boolean
+      lastLoginAt:
+        type: string
+      lastPlayedAt:
+        type: string
+      maxMapUnlocked:
+        description: Progression
+        type: integer
+      playfabId:
+        type: string
+      totalPlayTimeSeconds:
+        type: integer
+      totalStarsCollected:
+        type: integer
+    type: object
+  models.UserTalent:
+    properties:
+      currentLevel:
+        type: integer
+      id:
+        type: string
+      talentId:
+        type: string
+      upgradedAt:
+        type: string
+      userId:
+        type: string
+    type: object
+host: gamefeel-backend.fly.dev
+info:
+  contact:
+    email: support@gamefeel.com
+    name: API Support
+  description: Game backend API với PlayFab integration, anti-cheat validation, và
+    talent system
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: GameFeel Backend API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with PlayFab session token and get JWT for API
+        access
+      parameters:
+      - description: PlayFab session token
+        in: header
+        name: X-PlayFab-SessionToken
+        required: true
+        type: string
+      - description: Login request with PlayFab ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.AuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful login with JWT token
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.AuthResponse'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "401":
+          description: Invalid PlayFab token
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - PlayFabToken: []
+      summary: Login with PlayFab
+      tags:
+      - Authentication
+  /levels/complete:
+    post:
+      consumes:
+      - application/json
+      description: Submit level completion with anti-cheat validation
+      parameters:
+      - default: Bearer
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Level completion data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.LevelCompletionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Level completed successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.LevelCompletionResponse'
+              type: object
+        "400":
+          description: Invalid request or cheating detected
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Complete a level
+      tags:
+      - Levels
+  /talents:
+    get:
+      description: Retrieve all talents and their levels for the authenticated user
+      parameters:
+      - default: Bearer
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User talents retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.UserTalent'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get user talents
+      tags:
+      - Talents
+  /talents/upgrade:
+    post:
+      consumes:
+      - application/json
+      description: Upgrade a talent using gold currency
+      parameters:
+      - default: Bearer
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Talent upgrade request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.TalentUpgradeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Talent upgraded successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.TalentUpgradeResponse'
+              type: object
+        "400":
+          description: Invalid request, insufficient gold, or max level
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Upgrade a talent
+      tags:
+      - Talents
+securityDefinitions:
+  BearerAuth:
+    description: 'JWT token format: "Bearer {token}"'
+    in: header
+    name: Authorization
+    type: apiKey
+  PlayFabToken:
+    description: PlayFab session token for authentication
+    in: header
+    name: X-PlayFab-SessionToken
+    type: apiKey
+swagger: "2.0"

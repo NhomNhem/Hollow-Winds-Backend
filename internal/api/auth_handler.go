@@ -21,7 +21,19 @@ func NewAuthHandler() *AuthHandler {
 }
 
 // Login handles user login with PlayFab token
-// POST /api/v1/auth/login
+// @Summary Login with PlayFab
+// @Description Authenticate user with PlayFab session token and get JWT for API access
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param X-PlayFab-SessionToken header string true "PlayFab session token"
+// @Param request body models.AuthRequest true "Login request with PlayFab ID"
+// @Success 200 {object} models.APIResponse{data=models.AuthResponse} "Successful login with JWT token"
+// @Failure 400 {object} models.APIResponse{error=models.APIError} "Invalid request"
+// @Failure 401 {object} models.APIResponse{error=models.APIError} "Invalid PlayFab token"
+// @Failure 500 {object} models.APIResponse{error=models.APIError} "Internal server error"
+// @Router /auth/login [post]
+// @Security PlayFabToken
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	// Parse request body
 	var req models.AuthRequest

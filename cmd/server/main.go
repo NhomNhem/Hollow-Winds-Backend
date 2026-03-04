@@ -11,13 +11,38 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/swagger"
 	"github.com/joho/godotenv"
 
 	"github.com/NhomNhem/GameFeel-Backend/internal/api"
 	"github.com/NhomNhem/GameFeel-Backend/internal/database"
 	"github.com/NhomNhem/GameFeel-Backend/internal/middleware"
+	_ "github.com/NhomNhem/GameFeel-Backend/docs"
 )
 
+// @title GameFeel Backend API
+// @version 1.0
+// @description Game backend API với PlayFab integration, anti-cheat validation, và talent system
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.email support@gamefeel.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host gamefeel-backend.fly.dev
+// @BasePath /api/v1
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description JWT token format: "Bearer {token}"
+
+// @securityDefinitions.apikey PlayFabToken
+// @in header
+// @name X-PlayFab-SessionToken
+// @description PlayFab session token for authentication
 func main() {
 	// Load environment variables
 	if err := godotenv.Load("configs/.env"); err != nil {
@@ -110,6 +135,9 @@ func main() {
 
 		return c.JSON(health)
 	})
+
+	// Swagger documentation
+	app.Get("/swagger/*", swagger.HandlerDefault)
 
 	// API v1 routes
 	apiV1 := app.Group("/api/v1")
