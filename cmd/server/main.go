@@ -3,9 +3,12 @@ package main
 import (
 	"log"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/joho/godotenv"
@@ -62,8 +65,26 @@ func main() {
 	}))
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: getEnv("ALLOWED_ORIGINS", "*"),
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization, X-PlayFab-SessionToken",
 		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
+	}))
+	
+	// Global rate limiter (basic protection)
+	app.Use(limiter.New(limiter.Config{
+		Max:        getEnvInt("RATE_LIMIT_REQUESTS", 100),
+		Expiration: getEnvDuration("RATE_LIMIT_DURATION", 60*time.Second),
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return c.IP() // Rate limit by IP address
+		},
+		LimitReached: func(c *fiber.Ctx) error {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"success": false,
+				"error": fiber.Map{
+					"code":    "RATE_LIMIT_EXCEEDED",
+					"message": "Too many requests. Please try again later.",
+				},
+			})
+		},
 	}))
 
 	// Health check endpoint
@@ -145,6 +166,26 @@ func main() {
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+// Helper function to get environment variable as int with default value
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intVal, err := strconv.Atoi(value); err == nil {
+			return intVal
+		}
+	}
+	return defaultValue
+}
+
+// Helper function to get environment variable as duration with default value
+func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
+	if value := os.Getenv(key); value != "" {
+		if duration, err := time.ParseDuration(value); err == nil {
+			return duration
+		}
 	}
 	return defaultValue
 }

@@ -49,10 +49,16 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	// Get PlayFab session token from header
 	sessionToken := c.Get("X-PlayFab-SessionToken")
 	
-	// Validate PlayFab token (currently skipped - implement later)
+	// Validate PlayFab token (enforced in production)
 	if err := h.authService.ValidatePlayFabToken(sessionToken, req.PlayFabID); err != nil {
-		log.Printf("PlayFab token validation skipped: %v", err)
-		// Continue anyway for development
+		log.Printf("PlayFab token validation failed: %v", err)
+		return c.Status(fiber.StatusUnauthorized).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeUnauthorized,
+				Message: "Invalid PlayFab session token",
+			},
+		})
 	}
 
 	// Get or create user

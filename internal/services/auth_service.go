@@ -2,8 +2,12 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/NhomNhem/GameFeel-Backend/internal/database"
@@ -21,11 +25,16 @@ func NewAuthService() *AuthService {
 	return &AuthService{}
 }
 
+// PlayFabValidationResponse represents PlayFab API response
+type PlayFabValidationResponse struct {
+	Code   int                    `json:"code"`
+	Status string                 `json:"status"`
+	Data   map[string]interface{} `json:"data"`
+	Error  string                 `json:"error,omitempty"`
+}
+
 // ValidatePlayFabToken validates a PlayFab session token
-// TODO: Implement actual PlayFab API validation
 func (s *AuthService) ValidatePlayFabToken(sessionToken string, playfabID string) error {
-	// For now, skip actual PlayFab validation (implement later with PlayFab SDK)
-	// In production, call PlayFab Admin API to verify token
 	if sessionToken == "" {
 		return fmt.Errorf("session token is required")
 	}
@@ -34,8 +43,51 @@ func (s *AuthService) ValidatePlayFabToken(sessionToken string, playfabID string
 		return fmt.Errorf("playfab ID is required")
 	}
 	
-	// TODO: Call PlayFab API
-	// https://docs.microsoft.com/en-us/rest/api/playfab/admin/authentication/get-player-profile
+	// Get PlayFab Title ID from environment
+	titleID := os.Getenv("PLAYFAB_TITLE_ID")
+	if titleID == "" {
+		// If not configured, skip validation (development mode)
+		return nil
+	}
+	
+	// Call PlayFab Client API to validate the session token
+	// We use GetAccountInfo which requires valid session token
+	url := fmt.Sprintf("https://%s.playfabapi.com/Client/GetAccountInfo", titleID)
+	
+	reqBody := fmt.Sprintf(`{"PlayFabId": "%s"}`, playfabID)
+	req, err := http.NewRequest("POST", url, strings.NewReader(reqBody))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	
+	// Add session token to headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Authorization", sessionToken)
+	
+	// Send request
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to validate token: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	// Read response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response: %w", err)
+	}
+	
+	// Parse response
+	var pfResp PlayFabValidationResponse
+	if err := json.Unmarshal(body, &pfResp); err != nil {
+		return fmt.Errorf("failed to parse response: %w", err)
+	}
+	
+	// Check if validation succeeded
+	if pfResp.Code != 200 {
+		return fmt.Errorf("invalid PlayFab token: %s", pfResp.Error)
+	}
 	
 	return nil
 }
