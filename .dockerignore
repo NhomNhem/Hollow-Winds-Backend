@@ -3,7 +3,6 @@
 .github
 .env
 configs/.env
-docs/
 *.md
 README.md
 .gitignore
