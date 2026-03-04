@@ -12,6 +12,7 @@ import (
 
 	"github.com/NhomNhem/GameFeel-Backend/internal/api"
 	"github.com/NhomNhem/GameFeel-Backend/internal/database"
+	"github.com/NhomNhem/GameFeel-Backend/internal/middleware"
 )
 
 func main() {
@@ -111,10 +112,15 @@ func main() {
 
 	// Register handlers
 	authHandler := api.NewAuthHandler()
+	levelHandler := api.NewLevelHandler()
 	
-	// Auth routes
+	// Auth routes (public)
 	auth := apiV1.Group("/auth")
 	auth.Post("/login", authHandler.Login)
+	
+	// Protected routes (require JWT)
+	levels := apiV1.Group("/levels", middleware.AuthMiddleware())
+	levels.Post("/complete", levelHandler.CompleteLevel)
 
 	// Get port from env or default to 8080
 	port := getEnv("PORT", "8080")
