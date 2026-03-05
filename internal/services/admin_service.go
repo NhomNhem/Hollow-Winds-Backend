@@ -35,7 +35,6 @@ func (s *AdminService) SearchUsers(ctx context.Context, query string, page, perP
 		SELECT COUNT(*) 
 		FROM users 
 		WHERE playfab_id ILIKE $1 
-		   OR COALESCE(email, '') ILIKE $1 
 		   OR COALESCE(display_name, '') ILIKE $1
 	`, searchPattern).Scan(&totalCount)
 	
@@ -48,7 +47,7 @@ func (s *AdminService) SearchUsers(ctx context.Context, query string, page, perP
 		SELECT 
 			u.id,
 			u.playfab_id,
-			COALESCE(u.email, '') as email,
+			'' as email,
 			COALESCE(u.display_name, '') as username,
 			u.gold,
 			u.total_stars_collected as total_stars,
@@ -62,7 +61,6 @@ func (s *AdminService) SearchUsers(ctx context.Context, query string, page, perP
 			EXISTS(SELECT 1 FROM user_bans WHERE user_id = u.id AND is_active = true) as is_banned
 		FROM users u
 		WHERE u.playfab_id ILIKE $1 
-		   OR COALESCE(u.email, '') ILIKE $1 
 		   OR COALESCE(u.display_name, '') ILIKE $1
 		ORDER BY u.created_at DESC
 		LIMIT $2 OFFSET $3
@@ -115,7 +113,7 @@ func (s *AdminService) GetUserProfile(ctx context.Context, userID uuid.UUID) (*m
 		SELECT 
 			u.id,
 			u.playfab_id,
-			COALESCE(u.email, '') as email,
+			'' as email,
 			COALESCE(u.display_name, '') as username,
 			u.gold,
 			u.total_stars_collected as total_stars,
