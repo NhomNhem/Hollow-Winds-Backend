@@ -35,8 +35,8 @@ func (s *AdminService) SearchUsers(ctx context.Context, query string, page, perP
 		SELECT COUNT(*) 
 		FROM users 
 		WHERE playfab_id ILIKE $1 
-		   OR email ILIKE $1 
-		   OR username ILIKE $1
+		   OR COALESCE(email, '') ILIKE $1 
+		   OR COALESCE(display_name, '') ILIKE $1
 	`, searchPattern).Scan(&totalCount)
 	
 	if err != nil {
@@ -49,8 +49,8 @@ func (s *AdminService) SearchUsers(ctx context.Context, query string, page, perP
 			u.id,
 			u.playfab_id,
 			COALESCE(u.email, '') as email,
-			u.username,
-			u.total_gold,
+			COALESCE(u.display_name, '') as username,
+			u.gold,
 			u.total_stars_collected as total_stars,
 			u.is_admin,
 			u.created_at,
@@ -62,8 +62,8 @@ func (s *AdminService) SearchUsers(ctx context.Context, query string, page, perP
 			EXISTS(SELECT 1 FROM user_bans WHERE user_id = u.id AND is_active = true) as is_banned
 		FROM users u
 		WHERE u.playfab_id ILIKE $1 
-		   OR u.email ILIKE $1 
-		   OR u.username ILIKE $1
+		   OR COALESCE(u.email, '') ILIKE $1 
+		   OR COALESCE(u.display_name, '') ILIKE $1
 		ORDER BY u.created_at DESC
 		LIMIT $2 OFFSET $3
 	`, searchPattern, perPage, offset)
@@ -116,8 +116,8 @@ func (s *AdminService) GetUserProfile(ctx context.Context, userID uuid.UUID) (*m
 			u.id,
 			u.playfab_id,
 			COALESCE(u.email, '') as email,
-			u.username,
-			u.total_gold,
+			COALESCE(u.display_name, '') as username,
+			u.gold,
 			u.total_stars_collected as total_stars,
 			u.is_admin,
 			u.created_at,
@@ -169,7 +169,7 @@ func (s *AdminService) AdjustGold(ctx context.Context, adminID, userID uuid.UUID
 
 	// Get current balance
 	var oldBalance int
-	err = tx.QueryRow(ctx, "SELECT total_gold FROM users WHERE id = $1", userID).Scan(&oldBalance)
+	err = tx.QueryRow(ctx, "SELECT gold FROM users WHERE id = $1", userID).Scan(&oldBalance)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current balance: %w", err)
 	}
@@ -181,7 +181,7 @@ func (s *AdminService) AdjustGold(ctx context.Context, adminID, userID uuid.UUID
 	}
 
 	// Update user's gold
-	_, err = tx.Exec(ctx, "UPDATE users SET total_gold = $1 WHERE id = $2", newBalance, userID)
+	_, err = tx.Exec(ctx, "UPDATE users SET gold = $1 WHERE id = $2", newBalance, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update gold: %w", err)
 	}
@@ -509,7 +509,7 @@ func (s *AdminService) GetSystemStats(ctx context.Context) (*models.SystemStatsR
 	`).Scan(&stats.AdminActionsToday)
 
 	// Total gold and stars
-	db.QueryRow(ctx, "SELECT COALESCE(SUM(total_gold), 0) FROM users").Scan(&stats.TotalGoldInGame)
+	db.QueryRow(ctx, "SELECT COALESCE(SUM(gold), 0) FROM users").Scan(&stats.TotalGoldInGame)
 	db.QueryRow(ctx, "SELECT COALESCE(SUM(total_stars_collected), 0) FROM users").Scan(&stats.TotalStarsEarned)
 
 	// Levels completed
