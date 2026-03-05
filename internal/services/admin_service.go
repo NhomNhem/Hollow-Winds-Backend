@@ -529,57 +529,53 @@ func (s *AdminService) ExportUserData(ctx context.Context, userID uuid.UUID) (*m
 		return nil, err
 	}
 
-	// Get level completions
+	// Get level completions (optional - may not exist yet)
+	var levelCompletions []map[string]any
 	levelRows, err := db.Query(ctx, `
 		SELECT level_id, map_id, time_seconds, stars_earned, completed_at
 		FROM level_completions
 		WHERE user_id = $1
 		ORDER BY completed_at DESC
 	`, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get level completions: %w", err)
-	}
-	defer levelRows.Close()
-
-	var levelCompletions []map[string]any
-	for levelRows.Next() {
-		var levelID, mapID string
-		var timeSeconds int
-		var starsEarned int
-		var completedAt time.Time
-		levelRows.Scan(&levelID, &mapID, &timeSeconds, &starsEarned, &completedAt)
-		levelCompletions = append(levelCompletions, map[string]any{
-			"level_id":     levelID,
-			"map_id":       mapID,
-			"time_seconds": timeSeconds,
-			"stars_earned": starsEarned,
-			"completed_at": completedAt,
-		})
+	if err == nil {
+		defer levelRows.Close()
+		for levelRows.Next() {
+			var levelID, mapID string
+			var timeSeconds int
+			var starsEarned int
+			var completedAt time.Time
+			levelRows.Scan(&levelID, &mapID, &timeSeconds, &starsEarned, &completedAt)
+			levelCompletions = append(levelCompletions, map[string]any{
+				"level_id":     levelID,
+				"map_id":       mapID,
+				"time_seconds": timeSeconds,
+				"stars_earned": starsEarned,
+				"completed_at": completedAt,
+			})
+		}
 	}
 
-	// Get talents
+	// Get talents (optional - may not exist yet)
+	var talents []map[string]any
 	talentRows, err := db.Query(ctx, `
 		SELECT talent_id, current_level, times_upgraded, last_upgraded_at
 		FROM user_talents
 		WHERE user_id = $1
 	`, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get talents: %w", err)
-	}
-	defer talentRows.Close()
-
-	var talents []map[string]any
-	for talentRows.Next() {
-		var talentID string
-		var currentLevel, timesUpgraded int
-		var lastUpgradedAt time.Time
-		talentRows.Scan(&talentID, &currentLevel, &timesUpgraded, &lastUpgradedAt)
-		talents = append(talents, map[string]any{
-			"talent_id":        talentID,
-			"current_level":    currentLevel,
-			"times_upgraded":   timesUpgraded,
-			"last_upgraded_at": lastUpgradedAt,
-		})
+	if err == nil {
+		defer talentRows.Close()
+		for talentRows.Next() {
+			var talentID string
+			var currentLevel, timesUpgraded int
+			var lastUpgradedAt time.Time
+			talentRows.Scan(&talentID, &currentLevel, &timesUpgraded, &lastUpgradedAt)
+			talents = append(talents, map[string]any{
+				"talent_id":        talentID,
+				"current_level":    currentLevel,
+				"times_upgraded":   timesUpgraded,
+				"last_upgraded_at": lastUpgradedAt,
+			})
+		}
 	}
 
 	// Get ban history
