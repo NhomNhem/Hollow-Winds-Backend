@@ -1193,6 +1193,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/analytics/events": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submit a batch of analytics events",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Hollow Wilds"
+                ],
+                "summary": "Track HW Events",
+                "parameters": [
+                    {
+                        "description": "Analytics events",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AnalyticsEventsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Results",
+                        "schema": {
+                            "$ref": "#/definitions/models.AnalyticsEventsResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/analytics/level-stats/{levelId}": {
             "get": {
                 "description": "Get aggregated analytics for a specific level",
@@ -1231,6 +1270,83 @@ const docTemplate = `{
                                     "properties": {
                                         "data": {
                                             "$ref": "#/definitions/models.LevelStatsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/models.APIError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/hw/login": {
+            "post": {
+                "description": "Authenticate player with PlayFab ticket and get HW session JWT",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Hollow Wilds"
+                ],
+                "summary": "Hollow Wilds Login",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "PlayFab ID",
+                        "name": "X-PlayFab-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Login request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.HollowWildsLoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful login",
+                        "schema": {
+                            "$ref": "#/definitions/models.HollowWildsAuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/models.APIError"
                                         }
                                     }
                                 }
@@ -1365,6 +1481,155 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Revoke tokens and logout",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Hollow Wilds"
+                ],
+                "summary": "HW Logout",
+                "parameters": [
+                    {
+                        "description": "Optional refresh token to revoke",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/models.RefreshTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "description": "Get a new JWT using a refresh token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Hollow Wilds"
+                ],
+                "summary": "Refresh HW Token",
+                "parameters": [
+                    {
+                        "description": "Refresh request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RefreshTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "New token",
+                        "schema": {
+                            "$ref": "#/definitions/models.RefreshTokenResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid refresh token",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/models.APIError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/leaderboard": {
+            "get": {
+                "description": "Get ranked entries for a specific metric and scope",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Hollow Wilds"
+                ],
+                "summary": "Get HW Leaderboard",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "longest_run_days",
+                        "description": "Metric type (longest_run_days, sebilah_soul_level, bosses_killed)",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "global",
+                        "description": "Scope (global, per_character)",
+                        "name": "scope",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Character filter (required if scope=per_character)",
+                        "name": "character",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 100,
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Leaderboard data",
+                        "schema": {
+                            "$ref": "#/definitions/models.HollowWildsLeaderboardResponse"
                         }
                     }
                 }
@@ -1508,6 +1773,31 @@ const docTemplate = `{
                 }
             }
         },
+        "/leaderboard/player": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get current ranks for the authenticated player across all types",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Hollow Wilds"
+                ],
+                "summary": "Get HW Player Ranks",
+                "responses": {
+                    "200": {
+                        "description": "Player rankings",
+                        "schema": {
+                            "$ref": "#/definitions/models.PlayerLeaderboardResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/leaderboard/player/me": {
             "get": {
                 "security": [
@@ -1572,6 +1862,63 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal server error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/models.APIError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/leaderboard/submit": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submit a result after a run to update personal best and ranks",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Hollow Wilds"
+                ],
+                "summary": "Submit HW Run",
+                "parameters": [
+                    {
+                        "description": "Run result",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.LeaderboardSubmitRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Submission result",
+                        "schema": {
+                            "$ref": "#/definitions/models.LeaderboardSubmitResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Value too low or invalid request",
                         "schema": {
                             "allOf": [
                                 {
@@ -1699,6 +2046,148 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/player/save": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the full game state for the player",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Hollow Wilds"
+                ],
+                "summary": "Load HW Game",
+                "responses": {
+                    "200": {
+                        "description": "Game save data",
+                        "schema": {
+                            "$ref": "#/definitions/models.LoadGameResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Save not found",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/models.APIError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Persist the game state with version control",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Hollow Wilds"
+                ],
+                "summary": "Save HW Game",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Expected current version",
+                        "name": "version",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Save data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.SaveGameRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Save confirmed",
+                        "schema": {
+                            "$ref": "#/definitions/models.SaveGameResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Version conflict",
+                        "schema": {
+                            "$ref": "#/definitions/models.VersionConflictError"
+                        }
+                    }
+                }
+            }
+        },
+        "/player/save/backup": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Manually trigger a save backup",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Hollow Wilds"
+                ],
+                "summary": "Create HW Backup",
+                "responses": {
+                    "200": {
+                        "description": "Backup created",
+                        "schema": {
+                            "$ref": "#/definitions/models.BackupResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/player/save/backups": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get list of all save backups for the player",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Hollow Wilds"
+                ],
+                "summary": "List HW Backups",
+                "responses": {
+                    "200": {
+                        "description": "Backup list",
+                        "schema": {
+                            "$ref": "#/definitions/models.BackupListResponse"
                         }
                     }
                 }
@@ -2015,6 +2504,53 @@ const docTemplate = `{
                 }
             }
         },
+        "models.AnalyticsEvent": {
+            "type": "object",
+            "required": [
+                "event_name",
+                "timestamp"
+            ],
+            "properties": {
+                "event_name": {
+                    "type": "string"
+                },
+                "payload": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.AnalyticsEventsRequest": {
+            "type": "object",
+            "required": [
+                "events"
+            ],
+            "properties": {
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.AnalyticsEvent"
+                    }
+                }
+            }
+        },
+        "models.AnalyticsEventsResponse": {
+            "type": "object",
+            "properties": {
+                "accepted": {
+                    "type": "integer"
+                },
+                "rejected": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.AuthRequest": {
             "type": "object",
             "required": [
@@ -2041,6 +2577,45 @@ const docTemplate = `{
                 },
                 "user": {
                     "$ref": "#/definitions/models.User"
+                }
+            }
+        },
+        "models.BackupInfo": {
+            "type": "object",
+            "properties": {
+                "backup_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "save_version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.BackupListResponse": {
+            "type": "object",
+            "properties": {
+                "backups": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.BackupInfo"
+                    }
+                }
+            }
+        },
+        "models.BackupResponse": {
+            "type": "object",
+            "properties": {
+                "backup_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
@@ -2077,6 +2652,17 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "string"
+                }
+            }
+        },
+        "models.BaseData": {
+            "type": "object",
+            "properties": {
+                "placed_objects": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PlacedObject"
+                    }
                 }
             }
         },
@@ -2131,6 +2717,118 @@ const docTemplate = `{
                 }
             }
         },
+        "models.HollowWildsAuthResponse": {
+            "type": "object",
+            "properties": {
+                "expires_in": {
+                    "type": "integer"
+                },
+                "player_id": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.HollowWildsLeaderboardEntry": {
+            "type": "object",
+            "properties": {
+                "character": {
+                    "type": "string"
+                },
+                "combat_build": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "player_id": {
+                    "type": "string"
+                },
+                "rank": {
+                    "type": "integer"
+                },
+                "run_metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "integer"
+                },
+                "world_seed": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.HollowWildsLeaderboardResponse": {
+            "type": "object",
+            "properties": {
+                "character": {
+                    "type": "string"
+                },
+                "entries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.HollowWildsLeaderboardEntry"
+                    }
+                },
+                "scope": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.HollowWildsLoginRequest": {
+            "type": "object",
+            "required": [
+                "playfab_session_ticket"
+            ],
+            "properties": {
+                "playfab_session_ticket": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.InventoryData": {
+            "type": "object",
+            "properties": {
+                "equipped_weapon": {
+                    "type": "string"
+                },
+                "slots": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.InventorySlot"
+                    }
+                }
+            }
+        },
+        "models.InventorySlot": {
+            "type": "object",
+            "properties": {
+                "item_id": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "slot": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.LeaderboardEntry": {
             "type": "object",
             "properties": {
@@ -2163,6 +2861,55 @@ const docTemplate = `{
                 },
                 "totalStars": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.LeaderboardSubmitRequest": {
+            "type": "object",
+            "required": [
+                "character",
+                "type",
+                "value"
+            ],
+            "properties": {
+                "character": {
+                    "type": "string"
+                },
+                "combat_build": {
+                    "type": "string"
+                },
+                "run_metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "type": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "integer"
+                },
+                "world_seed": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.LeaderboardSubmitResponse": {
+            "type": "object",
+            "properties": {
+                "character_rank": {
+                    "type": "integer"
+                },
+                "global_rank": {
+                    "type": "integer"
+                },
+                "is_personal_best": {
+                    "type": "boolean"
+                },
+                "previous_global_rank": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
@@ -2283,6 +3030,119 @@ const docTemplate = `{
                 }
             }
         },
+        "models.LoadGameResponse": {
+            "type": "object",
+            "properties": {
+                "base": {
+                    "$ref": "#/definitions/models.BaseData"
+                },
+                "discovered_pois": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "inventory": {
+                    "$ref": "#/definitions/models.InventoryData"
+                },
+                "player": {
+                    "$ref": "#/definitions/models.PlayerState"
+                },
+                "player_id": {
+                    "type": "string"
+                },
+                "quest_flags": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "boolean"
+                    }
+                },
+                "save_version": {
+                    "type": "integer"
+                },
+                "sebilah": {
+                    "$ref": "#/definitions/models.SebilahData"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "world": {
+                    "$ref": "#/definitions/models.WorldData"
+                }
+            }
+        },
+        "models.PlacedObject": {
+            "type": "object",
+            "properties": {
+                "object_id": {
+                    "type": "string"
+                },
+                "x": {
+                    "type": "number"
+                },
+                "z": {
+                    "type": "number"
+                }
+            }
+        },
+        "models.PlayerLeaderboardEntry": {
+            "type": "object",
+            "properties": {
+                "character": {
+                    "type": "string"
+                },
+                "character_rank": {
+                    "type": "integer"
+                },
+                "global_rank": {
+                    "type": "integer"
+                },
+                "personal_best": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.PlayerLeaderboardResponse": {
+            "type": "object",
+            "properties": {
+                "entries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PlayerLeaderboardEntry"
+                    }
+                }
+            }
+        },
+        "models.PlayerState": {
+            "type": "object",
+            "properties": {
+                "character": {
+                    "description": "RIMBA, DARA, BAYU, SARI",
+                    "type": "string"
+                },
+                "health": {
+                    "type": "number"
+                },
+                "hunger": {
+                    "type": "number"
+                },
+                "position": {
+                    "$ref": "#/definitions/models.Vector2D"
+                },
+                "sanity": {
+                    "type": "number"
+                },
+                "warmth": {
+                    "type": "number"
+                }
+            }
+        },
         "models.PlayerStatsResponse": {
             "type": "object",
             "properties": {
@@ -2306,6 +3166,88 @@ const docTemplate = `{
                 },
                 "totalStars": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.RefreshTokenRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.RefreshTokenResponse": {
+            "type": "object",
+            "properties": {
+                "expires_in": {
+                    "type": "integer"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.SaveGameRequest": {
+            "type": "object",
+            "properties": {
+                "base": {
+                    "$ref": "#/definitions/models.BaseData"
+                },
+                "discovered_pois": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "inventory": {
+                    "$ref": "#/definitions/models.InventoryData"
+                },
+                "player": {
+                    "$ref": "#/definitions/models.PlayerState"
+                },
+                "quest_flags": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "boolean"
+                    }
+                },
+                "sebilah": {
+                    "$ref": "#/definitions/models.SebilahData"
+                },
+                "world": {
+                    "$ref": "#/definitions/models.WorldData"
+                }
+            }
+        },
+        "models.SaveGameResponse": {
+            "type": "object",
+            "properties": {
+                "save_version": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "boolean"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.SebilahData": {
+            "type": "object",
+            "properties": {
+                "infusion_points": {
+                    "type": "integer"
+                },
+                "soul_level": {
+                    "type": "integer"
+                },
+                "weapon_id": {
+                    "type": "string"
                 }
             }
         },
@@ -2580,6 +3522,45 @@ const docTemplate = `{
                 },
                 "userId": {
                     "type": "string"
+                }
+            }
+        },
+        "models.Vector2D": {
+            "type": "object",
+            "properties": {
+                "x": {
+                    "type": "number"
+                },
+                "z": {
+                    "type": "number"
+                }
+            }
+        },
+        "models.VersionConflictError": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "server_version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.WorldData": {
+            "type": "object",
+            "properties": {
+                "day_count": {
+                    "type": "integer"
+                },
+                "play_time_seconds": {
+                    "type": "integer"
+                },
+                "seed": {
+                    "type": "integer"
                 }
             }
         }

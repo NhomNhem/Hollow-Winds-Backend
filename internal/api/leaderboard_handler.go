@@ -169,6 +169,17 @@ func (h *LeaderboardHandler) GetPlayerStats(c *fiber.Ctx) error {
 }
 
 // GetHollowWildsLeaderboard handles the new Hollow Wilds leaderboard request
+// @Summary Get HW Leaderboard
+// @Description Get ranked entries for a specific metric and scope
+// @Tags Hollow Wilds
+// @Produce json
+// @Param type query string false "Metric type (longest_run_days, sebilah_soul_level, bosses_killed)" default(longest_run_days)
+// @Param scope query string false "Scope (global, per_character)" default(global)
+// @Param character query string false "Character filter (required if scope=per_character)"
+// @Param limit query int false "Limit" default(100)
+// @Param offset query int false "Offset" default(0)
+// @Success 200 {object} models.HollowWildsLeaderboardResponse "Leaderboard data"
+// @Router /leaderboard [get]
 func (h *LeaderboardHandler) GetHollowWildsLeaderboard(c *fiber.Ctx) error {
 	lbType := c.Query("type", "longest_run_days")
 	scope := c.Query("scope", "global")
@@ -202,6 +213,16 @@ func (h *LeaderboardHandler) GetHollowWildsLeaderboard(c *fiber.Ctx) error {
 }
 
 // SubmitHollowWildsEntry handles leaderboard submission
+// @Summary Submit HW Run
+// @Description Submit a result after a run to update personal best and ranks
+// @Tags Hollow Wilds
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body models.LeaderboardSubmitRequest true "Run result"
+// @Success 200 {object} models.LeaderboardSubmitResponse "Submission result"
+// @Failure 400 {object} models.APIResponse{error=models.APIError} "Value too low or invalid request"
+// @Router /leaderboard/submit [post]
 func (h *LeaderboardHandler) SubmitHollowWildsEntry(c *fiber.Ctx) error {
 	playerIDStr, ok := c.Locals("userId").(string)
 	if !ok {
@@ -251,6 +272,13 @@ func (h *LeaderboardHandler) SubmitHollowWildsEntry(c *fiber.Ctx) error {
 }
 
 // GetPlayerHollowWildsStats handles request for player's own ranks
+// @Summary Get HW Player Ranks
+// @Description Get current ranks for the authenticated player across all types
+// @Tags Hollow Wilds
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} models.PlayerLeaderboardResponse "Player rankings"
+// @Router /leaderboard/player [get]
 func (h *LeaderboardHandler) GetPlayerHollowWildsStats(c *fiber.Ctx) error {
 	playerIDStr, ok := c.Locals("userId").(string)
 	if !ok {

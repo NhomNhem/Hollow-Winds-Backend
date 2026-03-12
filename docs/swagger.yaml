@@ -73,6 +73,37 @@ definitions:
       total_count:
         type: integer
     type: object
+  models.AnalyticsEvent:
+    properties:
+      event_name:
+        type: string
+      payload:
+        additionalProperties: true
+        type: object
+      session_id:
+        type: string
+      timestamp:
+        type: string
+    required:
+    - event_name
+    - timestamp
+    type: object
+  models.AnalyticsEventsRequest:
+    properties:
+      events:
+        items:
+          $ref: '#/definitions/models.AnalyticsEvent'
+        type: array
+    required:
+    - events
+    type: object
+  models.AnalyticsEventsResponse:
+    properties:
+      accepted:
+        type: integer
+      rejected:
+        type: integer
+    type: object
   models.AuthRequest:
     properties:
       displayName:
@@ -91,6 +122,31 @@ definitions:
         type: string
       user:
         $ref: '#/definitions/models.User'
+    type: object
+  models.BackupInfo:
+    properties:
+      backup_id:
+        type: string
+      created_at:
+        type: string
+      save_version:
+        type: integer
+    type: object
+  models.BackupListResponse:
+    properties:
+      backups:
+        items:
+          $ref: '#/definitions/models.BackupInfo'
+        type: array
+    type: object
+  models.BackupResponse:
+    properties:
+      backup_id:
+        type: string
+      created_at:
+        type: string
+      success:
+        type: boolean
     type: object
   models.BanUserRequest:
     properties:
@@ -115,6 +171,13 @@ definitions:
         type: string
       user_id:
         type: string
+    type: object
+  models.BaseData:
+    properties:
+      placed_objects:
+        items:
+          $ref: '#/definitions/models.PlacedObject'
+        type: array
     type: object
   models.ExportUserDataResponse:
     properties:
@@ -150,6 +213,79 @@ definitions:
       total:
         type: integer
     type: object
+  models.HollowWildsAuthResponse:
+    properties:
+      expires_in:
+        type: integer
+      player_id:
+        type: string
+      refresh_token:
+        type: string
+      token:
+        type: string
+    type: object
+  models.HollowWildsLeaderboardEntry:
+    properties:
+      character:
+        type: string
+      combat_build:
+        type: string
+      display_name:
+        type: string
+      player_id:
+        type: string
+      rank:
+        type: integer
+      run_metadata:
+        additionalProperties: true
+        type: object
+      updated_at:
+        type: string
+      value:
+        type: integer
+      world_seed:
+        type: integer
+    type: object
+  models.HollowWildsLeaderboardResponse:
+    properties:
+      character:
+        type: string
+      entries:
+        items:
+          $ref: '#/definitions/models.HollowWildsLeaderboardEntry'
+        type: array
+      scope:
+        type: string
+      total:
+        type: integer
+      type:
+        type: string
+    type: object
+  models.HollowWildsLoginRequest:
+    properties:
+      playfab_session_ticket:
+        type: string
+    required:
+    - playfab_session_ticket
+    type: object
+  models.InventoryData:
+    properties:
+      equipped_weapon:
+        type: string
+      slots:
+        items:
+          $ref: '#/definitions/models.InventorySlot'
+        type: array
+    type: object
+  models.InventorySlot:
+    properties:
+      item_id:
+        type: string
+      quantity:
+        type: integer
+      slot:
+        type: integer
+    type: object
   models.LeaderboardEntry:
     properties:
       bestTime:
@@ -172,6 +308,39 @@ definitions:
         type: integer
       totalStars:
         type: integer
+    type: object
+  models.LeaderboardSubmitRequest:
+    properties:
+      character:
+        type: string
+      combat_build:
+        type: string
+      run_metadata:
+        additionalProperties: true
+        type: object
+      type:
+        type: string
+      value:
+        type: integer
+      world_seed:
+        type: integer
+    required:
+    - character
+    - type
+    - value
+    type: object
+  models.LeaderboardSubmitResponse:
+    properties:
+      character_rank:
+        type: integer
+      global_rank:
+        type: integer
+      is_personal_best:
+        type: boolean
+      previous_global_rank:
+        type: integer
+      success:
+        type: boolean
     type: object
   models.LevelCompletionRequest:
     properties:
@@ -252,6 +421,80 @@ definitions:
       uniquePlayers:
         type: integer
     type: object
+  models.LoadGameResponse:
+    properties:
+      base:
+        $ref: '#/definitions/models.BaseData'
+      discovered_pois:
+        items:
+          type: string
+        type: array
+      inventory:
+        $ref: '#/definitions/models.InventoryData'
+      player:
+        $ref: '#/definitions/models.PlayerState'
+      player_id:
+        type: string
+      quest_flags:
+        additionalProperties:
+          type: boolean
+        type: object
+      save_version:
+        type: integer
+      sebilah:
+        $ref: '#/definitions/models.SebilahData'
+      updated_at:
+        type: string
+      world:
+        $ref: '#/definitions/models.WorldData'
+    type: object
+  models.PlacedObject:
+    properties:
+      object_id:
+        type: string
+      x:
+        type: number
+      z:
+        type: number
+    type: object
+  models.PlayerLeaderboardEntry:
+    properties:
+      character:
+        type: string
+      character_rank:
+        type: integer
+      global_rank:
+        type: integer
+      personal_best:
+        type: boolean
+      type:
+        type: string
+      value:
+        type: integer
+    type: object
+  models.PlayerLeaderboardResponse:
+    properties:
+      entries:
+        items:
+          $ref: '#/definitions/models.PlayerLeaderboardEntry'
+        type: array
+    type: object
+  models.PlayerState:
+    properties:
+      character:
+        description: RIMBA, DARA, BAYU, SARI
+        type: string
+      health:
+        type: number
+      hunger:
+        type: number
+      position:
+        $ref: '#/definitions/models.Vector2D'
+      sanity:
+        type: number
+      warmth:
+        type: number
+    type: object
   models.PlayerStatsResponse:
     properties:
       averageStars:
@@ -268,6 +511,59 @@ definitions:
         type: string
       totalStars:
         type: integer
+    type: object
+  models.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  models.RefreshTokenResponse:
+    properties:
+      expires_in:
+        type: integer
+      token:
+        type: string
+    type: object
+  models.SaveGameRequest:
+    properties:
+      base:
+        $ref: '#/definitions/models.BaseData'
+      discovered_pois:
+        items:
+          type: string
+        type: array
+      inventory:
+        $ref: '#/definitions/models.InventoryData'
+      player:
+        $ref: '#/definitions/models.PlayerState'
+      quest_flags:
+        additionalProperties:
+          type: boolean
+        type: object
+      sebilah:
+        $ref: '#/definitions/models.SebilahData'
+      world:
+        $ref: '#/definitions/models.WorldData'
+    type: object
+  models.SaveGameResponse:
+    properties:
+      save_version:
+        type: integer
+      success:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
+  models.SebilahData:
+    properties:
+      infusion_points:
+        type: integer
+      soul_level:
+        type: integer
+      weapon_id:
+        type: string
     type: object
   models.SystemStatsResponse:
     properties:
@@ -450,6 +746,31 @@ definitions:
         type: string
       userId:
         type: string
+    type: object
+  models.Vector2D:
+    properties:
+      x:
+        type: number
+      z:
+        type: number
+    type: object
+  models.VersionConflictError:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+      server_version:
+        type: integer
+    type: object
+  models.WorldData:
+    properties:
+      day_count:
+        type: integer
+      play_time_seconds:
+        type: integer
+      seed:
+        type: integer
     type: object
 host: gamefeel-backend.fly.dev
 info:
@@ -1105,6 +1426,30 @@ paths:
       summary: Search users
       tags:
       - Admin
+  /analytics/events:
+    post:
+      consumes:
+      - application/json
+      description: Submit a batch of analytics events
+      parameters:
+      - description: Analytics events
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.AnalyticsEventsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Results
+          schema:
+            $ref: '#/definitions/models.AnalyticsEventsResponse'
+      security:
+      - BearerAuth: []
+      summary: Track HW Events
+      tags:
+      - Hollow Wilds
   /analytics/level-stats/{levelId}:
     get:
       description: Get aggregated analytics for a specific level
@@ -1142,6 +1487,51 @@ paths:
       summary: Get level statistics
       tags:
       - Analytics
+  /auth/hw/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate player with PlayFab ticket and get HW session JWT
+      parameters:
+      - description: PlayFab ID
+        in: header
+        name: X-PlayFab-ID
+        required: true
+        type: string
+      - description: Login request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.HollowWildsLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful login
+          schema:
+            $ref: '#/definitions/models.HollowWildsAuthResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      summary: Hollow Wilds Login
+      tags:
+      - Hollow Wilds
   /auth/login:
     post:
       consumes:
@@ -1204,6 +1594,100 @@ paths:
       summary: Login with PlayFab
       tags:
       - Authentication
+  /auth/logout:
+    delete:
+      consumes:
+      - application/json
+      description: Revoke tokens and logout
+      parameters:
+      - description: Optional refresh token to revoke
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/models.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+      security:
+      - BearerAuth: []
+      summary: HW Logout
+      tags:
+      - Hollow Wilds
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Get a new JWT using a refresh token
+      parameters:
+      - description: Refresh request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: New token
+          schema:
+            $ref: '#/definitions/models.RefreshTokenResponse'
+        "401":
+          description: Invalid refresh token
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      summary: Refresh HW Token
+      tags:
+      - Hollow Wilds
+  /leaderboard:
+    get:
+      description: Get ranked entries for a specific metric and scope
+      parameters:
+      - default: longest_run_days
+        description: Metric type (longest_run_days, sebilah_soul_level, bosses_killed)
+        in: query
+        name: type
+        type: string
+      - default: global
+        description: Scope (global, per_character)
+        in: query
+        name: scope
+        type: string
+      - description: Character filter (required if scope=per_character)
+        in: query
+        name: character
+        type: string
+      - default: 100
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Leaderboard data
+          schema:
+            $ref: '#/definitions/models.HollowWildsLeaderboardResponse'
+      summary: Get HW Leaderboard
+      tags:
+      - Hollow Wilds
   /leaderboard/global:
     get:
       description: Get top players ranked by total stars collected
@@ -1284,6 +1768,21 @@ paths:
       summary: Get level leaderboard
       tags:
       - Leaderboard
+  /leaderboard/player:
+    get:
+      description: Get current ranks for the authenticated player across all types
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Player rankings
+          schema:
+            $ref: '#/definitions/models.PlayerLeaderboardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get HW Player Ranks
+      tags:
+      - Hollow Wilds
   /leaderboard/player/me:
     get:
       description: Get authenticated player's global rank and statistics
@@ -1329,6 +1828,39 @@ paths:
       summary: Get player leaderboard stats
       tags:
       - Leaderboard
+  /leaderboard/submit:
+    post:
+      consumes:
+      - application/json
+      description: Submit a result after a run to update personal best and ranks
+      parameters:
+      - description: Run result
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.LeaderboardSubmitRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Submission result
+          schema:
+            $ref: '#/definitions/models.LeaderboardSubmitResponse'
+        "400":
+          description: Value too low or invalid request
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Submit HW Run
+      tags:
+      - Hollow Wilds
   /levels/complete:
     post:
       consumes:
@@ -1391,6 +1923,91 @@ paths:
       summary: Complete a level
       tags:
       - Levels
+  /player/save:
+    get:
+      description: Get the full game state for the player
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Game save data
+          schema:
+            $ref: '#/definitions/models.LoadGameResponse'
+        "404":
+          description: Save not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/models.APIError'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Load HW Game
+      tags:
+      - Hollow Wilds
+    put:
+      consumes:
+      - application/json
+      description: Persist the game state with version control
+      parameters:
+      - description: Expected current version
+        in: query
+        name: version
+        type: integer
+      - description: Save data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.SaveGameRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Save confirmed
+          schema:
+            $ref: '#/definitions/models.SaveGameResponse'
+        "409":
+          description: Version conflict
+          schema:
+            $ref: '#/definitions/models.VersionConflictError'
+      security:
+      - BearerAuth: []
+      summary: Save HW Game
+      tags:
+      - Hollow Wilds
+  /player/save/backup:
+    post:
+      description: Manually trigger a save backup
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Backup created
+          schema:
+            $ref: '#/definitions/models.BackupResponse'
+      security:
+      - BearerAuth: []
+      summary: Create HW Backup
+      tags:
+      - Hollow Wilds
+  /player/save/backups:
+    get:
+      description: Get list of all save backups for the player
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Backup list
+          schema:
+            $ref: '#/definitions/models.BackupListResponse'
+      security:
+      - BearerAuth: []
+      summary: List HW Backups
+      tags:
+      - Hollow Wilds
   /talents:
     get:
       description: Retrieve all talents and their levels for the authenticated user

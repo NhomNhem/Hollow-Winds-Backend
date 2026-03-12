@@ -24,6 +24,17 @@ func NewHollowWildsHandler() *HollowWildsHandler {
 }
 
 // Login handles Hollow Wilds player login
+// @Summary Hollow Wilds Login
+// @Description Authenticate player with PlayFab ticket and get HW session JWT
+// @Tags Hollow Wilds
+// @Accept json
+// @Produce json
+// @Param X-PlayFab-ID header string true "PlayFab ID"
+// @Param request body models.HollowWildsLoginRequest true "Login request"
+// @Success 200 {object} models.HollowWildsAuthResponse "Successful login"
+// @Failure 401 {object} models.APIResponse{error=models.APIError} "Unauthorized"
+// @Failure 500 {object} models.APIResponse{error=models.APIError} "Internal server error"
+// @Router /auth/hw/login [post]
 func (h *HollowWildsHandler) Login(c *fiber.Ctx) error {
 	var req models.HollowWildsLoginRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -96,6 +107,15 @@ func (h *HollowWildsHandler) Login(c *fiber.Ctx) error {
 }
 
 // Refresh handles token refresh
+// @Summary Refresh HW Token
+// @Description Get a new JWT using a refresh token
+// @Tags Hollow Wilds
+// @Accept json
+// @Produce json
+// @Param request body models.RefreshTokenRequest true "Refresh request"
+// @Success 200 {object} models.RefreshTokenResponse "New token"
+// @Failure 401 {object} models.APIResponse{error=models.APIError} "Invalid refresh token"
+// @Router /auth/refresh [post]
 func (h *HollowWildsHandler) Refresh(c *fiber.Ctx) error {
 	var req models.RefreshTokenRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -142,6 +162,15 @@ func (h *HollowWildsHandler) Refresh(c *fiber.Ctx) error {
 }
 
 // Logout handles player logout
+// @Summary HW Logout
+// @Description Revoke tokens and logout
+// @Tags Hollow Wilds
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body models.RefreshTokenRequest false "Optional refresh token to revoke"
+// @Success 200 {object} map[string]bool "Success"
+// @Router /auth/logout [delete]
 func (h *HollowWildsHandler) Logout(c *fiber.Ctx) error {
 	// Blacklist current JWT
 	authHeader := c.Get("Authorization")
@@ -161,6 +190,14 @@ func (h *HollowWildsHandler) Logout(c *fiber.Ctx) error {
 }
 
 // GetSave retrieves player save data
+// @Summary Load HW Game
+// @Description Get the full game state for the player
+// @Tags Hollow Wilds
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} models.LoadGameResponse "Game save data"
+// @Failure 404 {object} models.APIResponse{error=models.APIError} "Save not found"
+// @Router /player/save [get]
 func (h *HollowWildsHandler) GetSave(c *fiber.Ctx) error {
 	playerIDStr := c.Locals("userId").(string)
 	playerID, _ := uuid.Parse(playerIDStr)
@@ -201,6 +238,17 @@ func (h *HollowWildsHandler) GetSave(c *fiber.Ctx) error {
 }
 
 // UpdateSave updates player save data
+// @Summary Save HW Game
+// @Description Persist the game state with version control
+// @Tags Hollow Wilds
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param version query int false "Expected current version"
+// @Param request body models.SaveGameRequest true "Save data"
+// @Success 200 {object} models.SaveGameResponse "Save confirmed"
+// @Failure 409 {object} models.VersionConflictError "Version conflict"
+// @Router /player/save [put]
 func (h *HollowWildsHandler) UpdateSave(c *fiber.Ctx) error {
 	playerIDStr := fmt.Sprintf("%v", c.Locals("userId"))
 	playerID, err := uuid.Parse(playerIDStr)
@@ -260,6 +308,13 @@ func (h *HollowWildsHandler) UpdateSave(c *fiber.Ctx) error {
 }
 
 // CreateBackup creates a save backup
+// @Summary Create HW Backup
+// @Description Manually trigger a save backup
+// @Tags Hollow Wilds
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} models.BackupResponse "Backup created"
+// @Router /player/save/backup [post]
 func (h *HollowWildsHandler) CreateBackup(c *fiber.Ctx) error {
 	playerIDStr := c.Locals("userId").(string)
 	playerID, _ := uuid.Parse(playerIDStr)
@@ -283,6 +338,13 @@ func (h *HollowWildsHandler) CreateBackup(c *fiber.Ctx) error {
 }
 
 // GetBackups lists player backups
+// @Summary List HW Backups
+// @Description Get list of all save backups for the player
+// @Tags Hollow Wilds
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} models.BackupListResponse "Backup list"
+// @Router /player/save/backups [get]
 func (h *HollowWildsHandler) GetBackups(c *fiber.Ctx) error {
 	playerIDStr := c.Locals("userId").(string)
 	playerID, _ := uuid.Parse(playerIDStr)
@@ -313,6 +375,15 @@ func (h *HollowWildsHandler) GetBackups(c *fiber.Ctx) error {
 }
 
 // TrackEvents records analytics events
+// @Summary Track HW Events
+// @Description Submit a batch of analytics events
+// @Tags Hollow Wilds
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body models.AnalyticsEventsRequest true "Analytics events"
+// @Success 200 {object} models.AnalyticsEventsResponse "Results"
+// @Router /analytics/events [post]
 func (h *HollowWildsHandler) TrackEvents(c *fiber.Ctx) error {
 	var req models.AnalyticsEventsRequest
 	if err := c.BodyParser(&req); err != nil {
