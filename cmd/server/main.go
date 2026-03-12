@@ -190,14 +190,11 @@ func main() {
 	leaderboardUsecase := leaderboard.NewLeaderboardUsecase(leaderboardRepo)
 	analyticsUsecase := analytics.NewAnalyticsUsecase(analyticsRepo)
 
-	// Initialize Services (Legacy compatibility)
-	leaderboardService := services.NewLeaderboardService()
-
 	// Register handlers
 	authHandler := api.NewAuthHandler()
 	levelHandler := api.NewLevelHandler()
 	talentHandler := api.NewTalentHandler()
-	leaderboardHandler := http.NewLeaderboardHandler(leaderboardUsecase, leaderboardService) // Updated
+	leaderboardHandler := http.NewLeaderboardHandler(leaderboardUsecase) // Updated
 	adminHandler := api.NewAdminHandler()
 	hollowWildsHandler := http.NewHollowWildsHandler(authUsecase, playerUsecase, analyticsUsecase) // New
 
@@ -228,15 +225,10 @@ func main() {
 	leaderboard.Get("/", leaderboardHandler.GetHollowWildsLeaderboard)
 	leaderboard.Post("/submit", middleware.AuthMiddleware(), leaderboardHandler.SubmitHollowWildsEntry)
 	leaderboard.Get("/player", middleware.AuthMiddleware(), leaderboardHandler.GetPlayerHollowWildsStats)
-	leaderboard.Get("/global", leaderboardHandler.GetGlobalLeaderboard)
-	leaderboard.Get("/level/:levelId", leaderboardHandler.GetLevelLeaderboard)
-	leaderboard.Get("/player/me", middleware.AuthMiddleware(), leaderboardHandler.GetPlayerStats)
 
 	// Analytics routes
 	analytics := apiV1.Group("/analytics")
 	analytics.Post("/events", middleware.AuthMiddleware(), hollowWildsHandler.TrackEvents)
-	analytics.Get("/level-stats/:levelId", leaderboardHandler.GetLevelStats)
-
 	// Admin routes (require JWT + admin role)
 	admin := apiV1.Group("/admin", middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	admin.Get("/users/search", adminHandler.SearchUsers)

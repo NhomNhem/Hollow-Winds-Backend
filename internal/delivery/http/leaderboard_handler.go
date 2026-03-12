@@ -2,12 +2,10 @@ package http
 
 import (
 	"log"
-	"strconv"
 	"strings"
 
 	"github.com/NhomNhem/GameFeel-Backend/internal/domain/models"
 	"github.com/NhomNhem/GameFeel-Backend/internal/domain/usecase"
-	"github.com/NhomNhem/GameFeel-Backend/internal/services"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
@@ -15,107 +13,13 @@ import (
 // LeaderboardHandler handles leaderboard endpoints
 type LeaderboardHandler struct {
 	leaderboardUsecase usecase.LeaderboardUsecase
-	leaderboardService *services.LeaderboardService
 }
 
 // NewLeaderboardHandler creates a new leaderboard handler
-func NewLeaderboardHandler(
-	leaderboardUsecase usecase.LeaderboardUsecase,
-	leaderboardService *services.LeaderboardService,
-) *LeaderboardHandler {
+func NewLeaderboardHandler(leaderboardUsecase usecase.LeaderboardUsecase) *LeaderboardHandler {
 	return &LeaderboardHandler{
 		leaderboardUsecase: leaderboardUsecase,
-		leaderboardService: leaderboardService,
 	}
-}
-
-// GetGlobalLeaderboard handles global leaderboard request
-func (h *LeaderboardHandler) GetGlobalLeaderboard(c *fiber.Ctx) error {
-	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPage, _ := strconv.Atoi(c.Query("perPage", "100"))
-
-	leaderboard, err := h.leaderboardService.GetGlobalLeaderboard(c.Context(), page, perPage)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
-			Success: false,
-			Error: &models.APIError{
-				Code:    models.ErrCodeInternalError,
-				Message: "Failed to retrieve global leaderboard",
-			},
-		})
-	}
-
-	return c.JSON(models.APIResponse{
-		Success: true,
-		Data:    leaderboard,
-	})
-}
-
-// GetLevelLeaderboard handles per-level leaderboard request
-func (h *LeaderboardHandler) GetLevelLeaderboard(c *fiber.Ctx) error {
-	levelID := c.Params("levelId")
-	mapID := c.Query("mapId", "")
-	limit, _ := strconv.Atoi(c.Query("limit", "100"))
-
-	leaderboard, err := h.leaderboardService.GetLevelLeaderboard(c.Context(), levelID, mapID, limit)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
-			Success: false,
-			Error: &models.APIError{
-				Code:    models.ErrCodeInternalError,
-				Message: "Failed to retrieve level leaderboard",
-			},
-		})
-	}
-
-	return c.JSON(models.APIResponse{
-		Success: true,
-		Data:    leaderboard,
-	})
-}
-
-// GetPlayerStats handles player stats request
-func (h *LeaderboardHandler) GetPlayerStats(c *fiber.Ctx) error {
-	userIDStr := c.Locals("userId").(string)
-	userID, _ := uuid.Parse(userIDStr)
-
-	stats, err := h.leaderboardService.GetPlayerStats(c.Context(), userID)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
-			Success: false,
-			Error: &models.APIError{
-				Code:    models.ErrCodeInternalError,
-				Message: "Failed to retrieve player stats",
-			},
-		})
-	}
-
-	return c.JSON(models.APIResponse{
-		Success: true,
-		Data:    stats,
-	})
-}
-
-// GetLevelStats handles level analytics request
-func (h *LeaderboardHandler) GetLevelStats(c *fiber.Ctx) error {
-	levelID := c.Params("levelId")
-	mapID := c.Query("mapId", "")
-
-	stats, err := h.leaderboardService.GetLevelStats(c.Context(), levelID, mapID)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
-			Success: false,
-			Error: &models.APIError{
-				Code:    models.ErrCodeInternalError,
-				Message: "Failed to retrieve level statistics",
-			},
-		})
-	}
-
-	return c.JSON(models.APIResponse{
-		Success: true,
-		Data:    stats,
-	})
 }
 
 // GetHollowWildsLeaderboard handles the new Hollow Wilds leaderboard request
