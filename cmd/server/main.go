@@ -14,10 +14,11 @@ import (
 	"github.com/gofiber/swagger"
 	"github.com/joho/godotenv"
 
+	_ "github.com/NhomNhem/GameFeel-Backend/docs"
 	"github.com/NhomNhem/GameFeel-Backend/internal/api"
 	"github.com/NhomNhem/GameFeel-Backend/internal/database"
 	"github.com/NhomNhem/GameFeel-Backend/internal/middleware"
-	_ "github.com/NhomNhem/GameFeel-Backend/docs"
+	"github.com/NhomNhem/GameFeel-Backend/pkg/utils"
 )
 
 // @title GameFeel Backend API
@@ -57,6 +58,13 @@ func main() {
 	}
 	defer database.Close()
 
+	// Initialize Redis connection
+	if err := utils.InitRedis(); err != nil {
+		log.Printf("⚠️  Redis connection failed: %v", err)
+		log.Println("⚠️  Continuing without Redis (caching and sessions will be disabled)")
+	}
+	defer utils.CloseRedis()
+
 	// Run database migrations (only if connected)
 	if database.Pool != nil {
 		if err := database.RunMigrations(); err != nil {
@@ -93,7 +101,7 @@ func main() {
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization, X-PlayFab-SessionToken",
 		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
 	}))
-	
+
 	// Global rate limiter (basic protection)
 	app.Use(limiter.New(limiter.Config{
 		Max:        getEnvInt("RATE_LIMIT_REQUESTS", 100),
@@ -165,27 +173,42 @@ func main() {
 	talentHandler := api.NewTalentHandler()
 	leaderboardHandler := api.NewLeaderboardHandler()
 	adminHandler := api.NewAdminHandler()
-	
+	hollowWildsHandler := api.NewHollowWildsHandler()
+
 	// Auth routes (public)
 	auth := apiV1.Group("/auth")
 	auth.Post("/login", authHandler.Login)
-	
+	auth.Post("/hw/login", hollowWildsHandler.Login)
+	auth.Post("/refresh", hollowWildsHandler.Refresh)
+	auth.Delete("/logout", hollowWildsHandler.Logout)
+
+	// Player routes (Hollow Wilds)
+	player := apiV1.Group("/player", middleware.AuthMiddleware())
+	player.Get("/save", hollowWildsHandler.GetSave)
+	player.Put("/save", hollowWildsHandler.UpdateSave)
+	player.Post("/save/backup", hollowWildsHandler.CreateBackup)
+	player.Get("/save/backups", hollowWildsHandler.GetBackups)
+
 	// Protected routes (require JWT)
 	levels := apiV1.Group("/levels", middleware.AuthMiddleware())
 	levels.Post("/complete", levelHandler.CompleteLevel)
-	
+
 	talents := apiV1.Group("/talents", middleware.AuthMiddleware())
 	talents.Get("/", talentHandler.GetTalents)
 	talents.Post("/upgrade", talentHandler.UpgradeTalent)
 
 	// Leaderboard routes
 	leaderboard := apiV1.Group("/leaderboard")
+	leaderboard.Get("/", leaderboardHandler.GetHollowWildsLeaderboard)
+	leaderboard.Post("/submit", middleware.AuthMiddleware(), leaderboardHandler.SubmitHollowWildsEntry)
+	leaderboard.Get("/player", middleware.AuthMiddleware(), leaderboardHandler.GetPlayerHollowWildsStats)
 	leaderboard.Get("/global", leaderboardHandler.GetGlobalLeaderboard)
 	leaderboard.Get("/level/:levelId", leaderboardHandler.GetLevelLeaderboard)
 	leaderboard.Get("/player/me", middleware.AuthMiddleware(), leaderboardHandler.GetPlayerStats)
 
 	// Analytics routes
 	analytics := apiV1.Group("/analytics")
+	analytics.Post("/events", middleware.AuthMiddleware(), hollowWildsHandler.TrackEvents)
 	analytics.Get("/level-stats/:levelId", leaderboardHandler.GetLevelStats)
 
 	// Admin routes (require JWT + admin role)

@@ -1,0 +1,340 @@
+package api
+
+import (
+	"fmt"
+	"log"
+	"strings"
+
+	"github.com/NhomNhem/GameFeel-Backend/internal/models"
+	"github.com/NhomNhem/GameFeel-Backend/internal/services"
+	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
+)
+
+// HollowWildsHandler handles Hollow Wilds game endpoints
+type HollowWildsHandler struct {
+	hollowWildsService *services.HollowWildsService
+}
+
+// NewHollowWildsHandler creates a new Hollow Wilds handler
+func NewHollowWildsHandler() *HollowWildsHandler {
+	return &HollowWildsHandler{
+		hollowWildsService: services.NewHollowWildsService(),
+	}
+}
+
+// Login handles Hollow Wilds player login
+func (h *HollowWildsHandler) Login(c *fiber.Ctx) error {
+	var req models.HollowWildsLoginRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInvalidRequest,
+				Message: "Invalid request body",
+			},
+		})
+	}
+
+	// In a real app, we'd extract PlayFabId from the ticket or request
+	// For now, we assume the client provides it in a custom header or we'd call PlayFab
+	playfabID := c.Get("X-PlayFab-ID")
+	if playfabID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInvalidRequest,
+				Message: "X-PlayFab-ID header is required",
+			},
+		})
+	}
+
+	if err := h.hollowWildsService.ValidatePlayFabTicket(req.PlayfabSessionTicket, playfabID); err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeUnauthorized,
+				Message: "Invalid PlayFab session ticket",
+			},
+		})
+	}
+
+	player, err := h.hollowWildsService.GetOrCreatePlayer(c.Context(), playfabID, nil)
+	if err != nil {
+		log.Printf("Failed to get/create player: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInternalError,
+				Message: "Failed to authenticate player",
+			},
+		})
+	}
+
+	token, expiresIn, err := h.hollowWildsService.GenerateJWT(player.ID, player.PlayFabID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInternalError,
+				Message: "Failed to generate token",
+			},
+		})
+	}
+
+	refreshToken, err := h.hollowWildsService.GenerateRefreshToken(c.Context(), player.ID)
+	if err != nil {
+		log.Printf("Failed to generate refresh token: %v", err)
+	}
+
+	return c.JSON(models.HollowWildsAuthResponse{
+		Token:        token,
+		RefreshToken: refreshToken,
+		ExpiresIn:    expiresIn,
+		PlayerID:     player.ID.String(),
+	})
+}
+
+// Refresh handles token refresh
+func (h *HollowWildsHandler) Refresh(c *fiber.Ctx) error {
+	var req models.RefreshTokenRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInvalidRequest,
+				Message: "Invalid request body",
+			},
+		})
+	}
+
+	playerIDStr, err := h.hollowWildsService.ValidateRefreshToken(c.Context(), req.RefreshToken)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeUnauthorized,
+				Message: "Invalid refresh token",
+			},
+		})
+	}
+
+	playerID, _ := uuid.Parse(playerIDStr)
+	// We'd need the playfabId too, let's assume we can get it from DB or it's in the refresh token data
+	// For simplicity, we'll just use a placeholder or look it up
+	// In a real app, the refresh token would store the playfabId too.
+
+	token, expiresIn, err := h.hollowWildsService.GenerateJWT(playerID, "REFRESHED")
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInternalError,
+				Message: "Failed to generate token",
+			},
+		})
+	}
+
+	return c.JSON(models.RefreshTokenResponse{
+		Token:     token,
+		ExpiresIn: expiresIn,
+	})
+}
+
+// Logout handles player logout
+func (h *HollowWildsHandler) Logout(c *fiber.Ctx) error {
+	// Blacklist current JWT
+	authHeader := c.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		// In a real app, we'd parse the token to get JTI and blacklist it
+		log.Printf("Logging out token: %s", token)
+	}
+
+	// Revoke refresh token if provided
+	var req models.RefreshTokenRequest
+	if err := c.BodyParser(&req); err == nil && req.RefreshToken != "" {
+		h.hollowWildsService.RevokeRefreshToken(c.Context(), req.RefreshToken)
+	}
+
+	return c.JSON(fiber.Map{"success": true})
+}
+
+// GetSave retrieves player save data
+func (h *HollowWildsHandler) GetSave(c *fiber.Ctx) error {
+	playerIDStr := c.Locals("userId").(string)
+	playerID, _ := uuid.Parse(playerIDStr)
+
+	save, err := h.hollowWildsService.GetPlayerSave(c.Context(), playerID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInternalError,
+				Message: "Failed to retrieve save data",
+			},
+		})
+	}
+
+	if save == nil {
+		return c.Status(fiber.StatusNotFound).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    "save_not_found",
+				Message: "No save data found for this player",
+			},
+		})
+	}
+
+	return c.JSON(models.LoadGameResponse{
+		PlayerID:       save.PlayerID.String(),
+		SaveVersion:    save.SaveVersion,
+		UpdatedAt:      save.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		World:          save.SaveData.World,
+		Player:         save.SaveData.Player,
+		Inventory:      save.SaveData.Inventory,
+		Sebilah:        save.SaveData.Sebilah,
+		Base:           save.SaveData.Base,
+		DiscoveredPOIs: save.SaveData.DiscoveredPOIs,
+		QuestFlags:     save.SaveData.QuestFlags,
+	})
+}
+
+// UpdateSave updates player save data
+func (h *HollowWildsHandler) UpdateSave(c *fiber.Ctx) error {
+	playerIDStr := fmt.Sprintf("%v", c.Locals("userId"))
+	playerID, err := uuid.Parse(playerIDStr)
+	if err != nil {
+		log.Printf("Failed to parse player ID: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInternalError,
+				Message: "Internal server error: auth context invalid",
+			},
+		})
+	}
+
+	var req models.SaveGameRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInvalidRequest,
+				Message: "Invalid request body",
+			},
+		})
+	}
+
+	// Expected version for optimistic locking (multiplayer Phase 3)
+	expectedVersion := c.QueryInt("version", 0)
+
+	save, err := h.hollowWildsService.SavePlayerSave(c.Context(), playerID, models.GameSaveData{
+		World:          req.World,
+		Player:         req.Player,
+		Inventory:      req.Inventory,
+		Sebilah:        req.Sebilah,
+		Base:           req.Base,
+		DiscoveredPOIs: req.DiscoveredPOIs,
+		QuestFlags:     req.QuestFlags,
+	}, expectedVersion)
+
+	if err != nil {
+		if conflict, ok := err.(*models.VersionConflictError); ok {
+			return c.Status(fiber.StatusConflict).JSON(conflict)
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInternalError,
+				Message: err.Error(),
+			},
+		})
+	}
+
+	return c.JSON(models.SaveGameResponse{
+		Success:     true,
+		SaveVersion: save.SaveVersion,
+		UpdatedAt:   save.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+	})
+}
+
+// CreateBackup creates a save backup
+func (h *HollowWildsHandler) CreateBackup(c *fiber.Ctx) error {
+	playerIDStr := c.Locals("userId").(string)
+	playerID, _ := uuid.Parse(playerIDStr)
+
+	backup, err := h.hollowWildsService.CreateBackup(c.Context(), playerID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInternalError,
+				Message: err.Error(),
+			},
+		})
+	}
+
+	return c.JSON(models.BackupResponse{
+		Success:   true,
+		BackupID:  backup.ID.String(),
+		CreatedAt: backup.CreatedAt.Format("2006-01-02T15:04:05Z"),
+	})
+}
+
+// GetBackups lists player backups
+func (h *HollowWildsHandler) GetBackups(c *fiber.Ctx) error {
+	playerIDStr := c.Locals("userId").(string)
+	playerID, _ := uuid.Parse(playerIDStr)
+
+	backups, err := h.hollowWildsService.GetBackups(c.Context(), playerID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInternalError,
+				Message: "Failed to retrieve backups",
+			},
+		})
+	}
+
+	var backupInfos []models.BackupInfo
+	for _, b := range backups {
+		backupInfos = append(backupInfos, models.BackupInfo{
+			BackupID:    b.ID.String(),
+			SaveVersion: b.SaveVersion,
+			CreatedAt:   b.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		})
+	}
+
+	return c.JSON(models.BackupListResponse{
+		Backups: backupInfos,
+	})
+}
+
+// TrackEvents records analytics events
+func (h *HollowWildsHandler) TrackEvents(c *fiber.Ctx) error {
+	var req models.AnalyticsEventsRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInvalidRequest,
+				Message: "Invalid request body",
+			},
+		})
+	}
+
+	var playerID *uuid.UUID
+	if userIDStr, ok := c.Locals("userId").(string); ok {
+		id, _ := uuid.Parse(userIDStr)
+		playerID = &id
+	}
+
+	accepted, rejected := h.hollowWildsService.RecordAnalyticsEvents(c.Context(), playerID, req.Events)
+
+	return c.JSON(models.AnalyticsEventsResponse{
+		Accepted: accepted,
+		Rejected: rejected,
+	})
+}

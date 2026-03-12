@@ -36,7 +36,70 @@ func RunMigrations() error {
 		return err
 	}
 
+	// Create Hollow Wilds tables
+	if err := createHollowWildsTables(ctx); err != nil {
+		return err
+	}
+
 	log.Println("✅ Migrations completed successfully")
+	return nil
+}
+
+func createHollowWildsTables(ctx context.Context) error {
+	query := `
+	-- Players
+	CREATE TABLE IF NOT EXISTS players (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		playfab_id VARCHAR(64) UNIQUE NOT NULL,
+		display_name VARCHAR(64),
+		created_at TIMESTAMPTZ DEFAULT NOW(),
+		last_seen_at TIMESTAMPTZ DEFAULT NOW()
+	);
+
+	-- Save Data
+	CREATE TABLE IF NOT EXISTS player_saves (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		player_id UUID REFERENCES players(id) ON DELETE CASCADE,
+		save_version INT DEFAULT 1,
+		save_data JSONB NOT NULL,
+		updated_at TIMESTAMPTZ DEFAULT NOW(),
+		UNIQUE(player_id)
+	);
+
+	-- Save Backups
+	CREATE TABLE IF NOT EXISTS player_save_backups (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		player_id UUID REFERENCES players(id) ON DELETE CASCADE,
+		save_version INT,
+		save_data JSONB NOT NULL,
+		created_at TIMESTAMPTZ DEFAULT NOW()
+	);
+
+	-- Leaderboard
+	CREATE TABLE IF NOT EXISTS leaderboard_entries (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		player_id UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+		type VARCHAR(32) NOT NULL,
+		value BIGINT NOT NULL,
+		character VARCHAR(16) NOT NULL,
+		world_seed BIGINT,
+		combat_build VARCHAR(16),
+		run_metadata JSONB DEFAULT '{}',
+		updated_at TIMESTAMPTZ DEFAULT NOW(),
+		UNIQUE(player_id, type, character)
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_leaderboard_global ON leaderboard_entries(type, value DESC);
+	CREATE INDEX IF NOT EXISTS idx_leaderboard_character ON leaderboard_entries(type, character, value DESC);
+	CREATE INDEX IF NOT EXISTS idx_leaderboard_player ON leaderboard_entries(player_id);
+	`
+
+	_, err := Pool.Exec(ctx, query)
+	if err != nil {
+		return err
+	}
+
+	log.Println("  ✓ Created Hollow Wilds tables")
 	return nil
 }
 

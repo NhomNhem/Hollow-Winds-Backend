@@ -1,0 +1,22 @@
+## 1. Pre-Deployment Checks
+
+- [ ] 1.1 Perform a full backup of the production Supabase database
+- [x] 1.2 Review `fly.toml` to ensure correct internal port and resource allocation
+
+## 2. Secrets Configuration
+
+- [ ] 2.1 Set production database secret: `fly secrets set SUPABASE_DATABASE_URL="..."`
+- [ ] 2.2 Set production Redis secret: `fly secrets set REDIS_URL="..."`
+- [ ] 2.3 Set JWT security secret: `fly secrets set JWT_SECRET="..."`
+- [ ] 2.4 Set PlayFab Title ID: `fly secrets set PLAYFAB_TITLE_ID="..."`
+
+## 3. Production Migration
+
+- [ ] 3.1 Execute `004_hollow_wilds_phase1.sql` migration against the production database
+- [ ] 3.2 Verify table creation (`players`, `player_saves`, etc.) in the Supabase Dashboard
+
+## 4. Deployment & Verification
+
+- [ ] 4.1 Execute production push: `fly deploy`
+- [ ] 4.2 Verify live health check status: `https://api.hollowwilds.com/health`
+- [ ] 4.3 Perform a production smoke test using `scripts/test_hollow_wilds.go` (pointing to the live URL)

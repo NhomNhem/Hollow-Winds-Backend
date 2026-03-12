@@ -3,6 +3,7 @@ package api
 import (
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/NhomNhem/GameFeel-Backend/internal/models"
 	"github.com/NhomNhem/GameFeel-Backend/internal/services"
@@ -88,7 +89,7 @@ func (h *LeaderboardHandler) GetLevelLeaderboard(c *fiber.Ctx) error {
 	}
 
 	mapID := c.Query("mapId", "")
-	
+
 	limit, err := strconv.Atoi(c.Query("limit", "100"))
 	if err != nil || limit < 1 || limit > 100 {
 		limit = 100
@@ -165,6 +166,117 @@ func (h *LeaderboardHandler) GetPlayerStats(c *fiber.Ctx) error {
 		Success: true,
 		Data:    stats,
 	})
+}
+
+// GetHollowWildsLeaderboard handles the new Hollow Wilds leaderboard request
+func (h *LeaderboardHandler) GetHollowWildsLeaderboard(c *fiber.Ctx) error {
+	lbType := c.Query("type", "longest_run_days")
+	scope := c.Query("scope", "global")
+	character := c.Query("character", "")
+	limit := c.QueryInt("limit", 100)
+	offset := c.QueryInt("offset", 0)
+
+	if scope == "per_character" && character == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInvalidRequest,
+				Message: "character is required for per_character scope",
+			},
+		})
+	}
+
+	leaderboard, err := h.leaderboardService.GetHollowWildsLeaderboard(c.Context(), lbType, scope, character, limit, offset)
+	if err != nil {
+		log.Printf("Failed to get Hollow Wilds leaderboard: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInternalError,
+				Message: "Failed to retrieve leaderboard",
+			},
+		})
+	}
+
+	return c.JSON(leaderboard)
+}
+
+// SubmitHollowWildsEntry handles leaderboard submission
+func (h *LeaderboardHandler) SubmitHollowWildsEntry(c *fiber.Ctx) error {
+	playerIDStr, ok := c.Locals("userId").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeUnauthorized,
+				Message: "User not authenticated",
+			},
+		})
+	}
+	playerID, _ := uuid.Parse(playerIDStr)
+
+	var req models.LeaderboardSubmitRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInvalidRequest,
+				Message: "Invalid request body",
+			},
+		})
+	}
+
+	result, err := h.leaderboardService.SubmitHollowWildsEntry(c.Context(), playerID, req)
+	if err != nil {
+		log.Printf("Failed to submit leaderboard entry: %v", err)
+		if strings.Contains(err.Error(), "value_too_low") {
+			return c.Status(fiber.StatusBadRequest).JSON(models.APIResponse{
+				Success: false,
+				Error: &models.APIError{
+					Code:    "value_too_low",
+					Message: "Submitted value does not beat personal best",
+				},
+			})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInternalError,
+				Message: "Failed to submit entry",
+			},
+		})
+	}
+
+	return c.JSON(result)
+}
+
+// GetPlayerHollowWildsStats handles request for player's own ranks
+func (h *LeaderboardHandler) GetPlayerHollowWildsStats(c *fiber.Ctx) error {
+	playerIDStr, ok := c.Locals("userId").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeUnauthorized,
+				Message: "User not authenticated",
+			},
+		})
+	}
+	playerID, _ := uuid.Parse(playerIDStr)
+
+	stats, err := h.leaderboardService.GetPlayerHollowWildsStats(c.Context(), playerID)
+	if err != nil {
+		log.Printf("Failed to get player Hollow Wilds stats: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInternalError,
+				Message: "Failed to retrieve player stats",
+			},
+		})
+	}
+
+	return c.JSON(stats)
 }
 
 // GetLevelStats handles level analytics request
