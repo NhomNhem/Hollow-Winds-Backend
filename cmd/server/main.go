@@ -31,7 +31,7 @@ import (
 )
 
 // @title GameFeel Backend API
-// @version 1.0
+// @version 1.1.0
 // @description Game backend API với PlayFab integration, anti-cheat validation, và talent system
 // @termsOfService http://swagger.io/terms/
 
@@ -134,7 +134,7 @@ func main() {
 		health := fiber.Map{
 			"status":  "ok",
 			"message": "GameFeel Backend is running",
-			"version": "1.0.0",
+			"version": "1.1.0",
 		}
 
 		// Check database connection (optional)
