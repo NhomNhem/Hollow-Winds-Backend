@@ -3,30 +3,32 @@ name: Deploy to Fly.io
 on:
   push:
     branches:
-      - main  # Auto-deploy when pushing to main branch
+      - main
+  workflow_dispatch: # Allow manual trigger from GitHub UI
 
 jobs:
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
-      
-      - name: Setup Fly.io CLI
+
+      - name: Setup Flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
-      
+
       - name: Deploy to Fly.io
         run: |
           flyctl secrets set SUPABASE_DATABASE_URL="$SUPABASE_DATABASE_URL" REDIS_URL="$REDIS_URL" JWT_SECRET="$JWT_SECRET" PLAYFAB_TITLE_ID="$PLAYFAB_TITLE_ID" --app gamefeel-backend
-          flyctl deploy --remote-only --app gamefeel-backend
+          flyctl deploy --remote-only --app gamefeel-backend --wait-timeout 300
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           REDIS_URL: ${{ secrets.REDIS_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           PLAYFAB_TITLE_ID: ${{ secrets.PLAYFAB_TITLE_ID }}
+
       
       - name: Health Check
         run: |
