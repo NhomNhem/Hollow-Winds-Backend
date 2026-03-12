@@ -5,15 +5,26 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/NhomNhem/GameFeel-Backend/internal/domain/models"
 )
 
-const baseURL = "http://localhost:8085/api/v1"
+var baseURL = "http://localhost:8080/api/v1"
 
 func main() {
-	fmt.Println("🧪 Starting Hollow Wilds Phase 1 Integration Tests...")
+	// Check for environment overrides
+	if envURL := os.Getenv("TEST_BASE_URL"); envURL != "" {
+		baseURL = envURL
+	}
+
+	testPlayFabID := "TEST_PLAYER_1"
+	if envID := os.Getenv("TEST_PLAYFAB_ID"); envID != "" {
+		testPlayFabID = envID
+	}
+
+	fmt.Printf("🧪 Starting Hollow Wilds Phase 1 Integration Tests against %s...\n", baseURL)
 
 	// 1. Auth: Login
 	fmt.Println("\nStep 1: Testing Login...")
@@ -21,12 +32,17 @@ func main() {
 		PlayfabSessionTicket: "test-ticket",
 	}
 
+	if envTicket := os.Getenv("TEST_PLAYFAB_TICKET"); envTicket != "" {
+		loginReq.PlayfabSessionTicket = envTicket
+	}
+
 	// Create request with X-PlayFab-ID header
 	client := &http.Client{}
 	body, _ := json.Marshal(loginReq)
 	req, _ := http.NewRequest("POST", baseURL+"/auth/hw/login", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-PlayFab-ID", "TEST_PLAYER_1")
+	req.Header.Set("X-PlayFab-ID", testPlayFabID)
+
 
 	resp, err := client.Do(req)
 	if err != nil {
