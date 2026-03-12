@@ -17,7 +17,16 @@ import (
 	_ "github.com/NhomNhem/GameFeel-Backend/docs"
 	"github.com/NhomNhem/GameFeel-Backend/internal/api"
 	"github.com/NhomNhem/GameFeel-Backend/internal/database"
+	"github.com/NhomNhem/GameFeel-Backend/internal/delivery/http"
+	"github.com/NhomNhem/GameFeel-Backend/internal/infrastructure/cache"
+	"github.com/NhomNhem/GameFeel-Backend/internal/infrastructure/identity"
+	"github.com/NhomNhem/GameFeel-Backend/internal/infrastructure/persistence"
 	"github.com/NhomNhem/GameFeel-Backend/internal/middleware"
+	"github.com/NhomNhem/GameFeel-Backend/internal/services"
+	"github.com/NhomNhem/GameFeel-Backend/internal/usecase/analytics"
+	"github.com/NhomNhem/GameFeel-Backend/internal/usecase/auth"
+	"github.com/NhomNhem/GameFeel-Backend/internal/usecase/leaderboard"
+	"github.com/NhomNhem/GameFeel-Backend/internal/usecase/player"
 	"github.com/NhomNhem/GameFeel-Backend/pkg/utils"
 )
 
@@ -167,13 +176,30 @@ func main() {
 		})
 	})
 
+	// Initialize Infrastructure
+	playerRepo := persistence.NewPostgresPlayerRepository(database.Pool)
+	saveRepo := persistence.NewPostgresSaveRepository(database.Pool)
+	leaderboardRepo := persistence.NewPostgresLeaderboardRepository(database.Pool)
+	analyticsRepo := persistence.NewPostgresAnalyticsRepository(database.Pool)
+	redisRepo := cache.NewRedisRepository(utils.RedisClient)
+	identityRepo := identity.NewPlayFabRepository()
+
+	// Initialize Usecases
+	authUsecase := auth.NewAuthUsecase(playerRepo, identityRepo, redisRepo)
+	playerUsecase := player.NewPlayerUsecase(saveRepo, redisRepo)
+	leaderboardUsecase := leaderboard.NewLeaderboardUsecase(leaderboardRepo)
+	analyticsUsecase := analytics.NewAnalyticsUsecase(analyticsRepo)
+
+	// Initialize Services (Legacy compatibility)
+	leaderboardService := services.NewLeaderboardService()
+
 	// Register handlers
 	authHandler := api.NewAuthHandler()
 	levelHandler := api.NewLevelHandler()
 	talentHandler := api.NewTalentHandler()
-	leaderboardHandler := api.NewLeaderboardHandler()
+	leaderboardHandler := http.NewLeaderboardHandler(leaderboardUsecase, leaderboardService) // Updated
 	adminHandler := api.NewAdminHandler()
-	hollowWildsHandler := api.NewHollowWildsHandler()
+	hollowWildsHandler := http.NewHollowWildsHandler(authUsecase, playerUsecase, analyticsUsecase) // New
 
 	// Auth routes (public)
 	auth := apiV1.Group("/auth")

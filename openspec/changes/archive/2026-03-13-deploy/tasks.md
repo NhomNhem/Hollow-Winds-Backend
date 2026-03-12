@@ -1,6 +1,6 @@
 ## 1. Pre-Deployment Checks
 
-- [ ] 1.1 Perform a full backup of the production Supabase database
+- [x] 1.1 Perform a full backup of the production Supabase database
 - [x] 1.2 Review `fly.toml` to ensure correct internal port and resource allocation
 - [x] 1.3 Align `analytics_events` schema and code with production context
 
@@ -19,7 +19,7 @@
 
 ## 4. Deployment & Verification
 
-- [ ] 4.1 Trigger automated deployment: Push latest changes to `main` branch
-- [ ] 4.2 Monitor GitHub Actions workflow for successful completion
-- [ ] 4.3 Verify live health check status: `https://gamefeel-backend.fly.dev/health`
-- [ ] 4.4 Perform a production smoke test using `scripts/test_hollow_wilds.go` (pointing to the live URL)
+- [x] 4.1 Trigger automated deployment: Push latest changes to `main` branch
+- [x] 4.2 Monitor GitHub Actions workflow for successful completion
+- [x] 4.3 Verify live health check status: `https://gamefeel-backend.fly.dev/health`
+- [x] 4.4 Perform a production smoke test using `scripts/test_hollow_wilds.go` (pointing to the live URL)

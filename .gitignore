@@ -39,3 +39,22 @@ temp/
 # Database
 *.db
 *.sqlite
+
+
+.claude/
+.cline/
+.codex/
+.continue/
+.crush/
+.cursor/
+.gemini/
+.iflow/
+.kilo/, .kilocode/, .kiro/
+.opencode/
+.pi/, .qoder/, .qwen/
+.roo/, .trae/
+.windsurf/
+.amazonq/, .augment/
+.codebuddy/, .cospec/
+.factory/
+.vi/

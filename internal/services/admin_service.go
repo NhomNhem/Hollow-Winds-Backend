@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/NhomNhem/GameFeel-Backend/internal/database"
-	"github.com/NhomNhem/GameFeel-Backend/internal/models"
+	"github.com/NhomNhem/GameFeel-Backend/internal/domain/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -37,7 +37,7 @@ func (s *AdminService) SearchUsers(ctx context.Context, query string, page, perP
 		WHERE playfab_id ILIKE $1 
 		   OR COALESCE(display_name, '') ILIKE $1
 	`, searchPattern).Scan(&totalCount)
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to count users: %w", err)
 	}
@@ -264,9 +264,9 @@ func (s *AdminService) BanUser(ctx context.Context, adminID, userID uuid.UUID, r
 
 	// Log admin action
 	details := map[string]any{
-		"reason":        reason,
-		"banned_until":  bannedUntil,
-		"is_permanent":  bannedUntil == nil,
+		"reason":       reason,
+		"banned_until": bannedUntil,
+		"is_permanent": bannedUntil == nil,
 	}
 	detailsJSON, _ := json.Marshal(details)
 

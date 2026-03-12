@@ -1,11 +1,12 @@
-package api
+package http
 
 import (
 	"log"
 	"strconv"
 	"strings"
 
-	"github.com/NhomNhem/GameFeel-Backend/internal/models"
+	"github.com/NhomNhem/GameFeel-Backend/internal/domain/models"
+	"github.com/NhomNhem/GameFeel-Backend/internal/domain/usecase"
 	"github.com/NhomNhem/GameFeel-Backend/internal/services"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -13,42 +14,28 @@ import (
 
 // LeaderboardHandler handles leaderboard endpoints
 type LeaderboardHandler struct {
+	leaderboardUsecase usecase.LeaderboardUsecase
 	leaderboardService *services.LeaderboardService
 }
 
 // NewLeaderboardHandler creates a new leaderboard handler
-func NewLeaderboardHandler() *LeaderboardHandler {
+func NewLeaderboardHandler(
+	leaderboardUsecase usecase.LeaderboardUsecase,
+	leaderboardService *services.LeaderboardService,
+) *LeaderboardHandler {
 	return &LeaderboardHandler{
-		leaderboardService: services.NewLeaderboardService(),
+		leaderboardUsecase: leaderboardUsecase,
+		leaderboardService: leaderboardService,
 	}
 }
 
 // GetGlobalLeaderboard handles global leaderboard request
-// @Summary Get global leaderboard
-// @Description Get top players ranked by total stars collected
-// @Tags Leaderboard
-// @Produce json
-// @Param page query int false "Page number" default(1)
-// @Param perPage query int false "Results per page (max 100)" default(100)
-// @Success 200 {object} models.APIResponse{data=models.GlobalLeaderboardResponse} "Global leaderboard"
-// @Failure 500 {object} models.APIResponse{error=models.APIError} "Internal server error"
-// @Router /leaderboard/global [get]
 func (h *LeaderboardHandler) GetGlobalLeaderboard(c *fiber.Ctx) error {
-	// Parse query parameters
-	page, err := strconv.Atoi(c.Query("page", "1"))
-	if err != nil || page < 1 {
-		page = 1
-	}
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	perPage, _ := strconv.Atoi(c.Query("perPage", "100"))
 
-	perPage, err := strconv.Atoi(c.Query("perPage", "100"))
-	if err != nil || perPage < 1 || perPage > 100 {
-		perPage = 100
-	}
-
-	// Get leaderboard
 	leaderboard, err := h.leaderboardService.GetGlobalLeaderboard(c.Context(), page, perPage)
 	if err != nil {
-		log.Printf("Failed to get global leaderboard: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
 			Success: false,
 			Error: &models.APIError{
@@ -65,40 +52,13 @@ func (h *LeaderboardHandler) GetGlobalLeaderboard(c *fiber.Ctx) error {
 }
 
 // GetLevelLeaderboard handles per-level leaderboard request
-// @Summary Get level leaderboard
-// @Description Get best times for a specific level
-// @Tags Leaderboard
-// @Produce json
-// @Param levelId path string true "Level ID (e.g., 1-1)"
-// @Param mapId query string false "Map ID filter (optional)"
-// @Param limit query int false "Result limit (max 100)" default(100)
-// @Success 200 {object} models.APIResponse{data=models.LevelLeaderboardResponse} "Level leaderboard"
-// @Failure 500 {object} models.APIResponse{error=models.APIError} "Internal server error"
-// @Router /leaderboard/level/{levelId} [get]
 func (h *LeaderboardHandler) GetLevelLeaderboard(c *fiber.Ctx) error {
-	// Parse path and query parameters
 	levelID := c.Params("levelId")
-	if levelID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(models.APIResponse{
-			Success: false,
-			Error: &models.APIError{
-				Code:    models.ErrCodeInvalidRequest,
-				Message: "levelId is required",
-			},
-		})
-	}
-
 	mapID := c.Query("mapId", "")
+	limit, _ := strconv.Atoi(c.Query("limit", "100"))
 
-	limit, err := strconv.Atoi(c.Query("limit", "100"))
-	if err != nil || limit < 1 || limit > 100 {
-		limit = 100
-	}
-
-	// Get leaderboard
 	leaderboard, err := h.leaderboardService.GetLevelLeaderboard(c.Context(), levelID, mapID, limit)
 	if err != nil {
-		log.Printf("Failed to get level leaderboard for %s: %v", levelID, err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
 			Success: false,
 			Error: &models.APIError{
@@ -115,44 +75,12 @@ func (h *LeaderboardHandler) GetLevelLeaderboard(c *fiber.Ctx) error {
 }
 
 // GetPlayerStats handles player stats request
-// @Summary Get player leaderboard stats
-// @Description Get authenticated player's global rank and statistics
-// @Tags Leaderboard
-// @Produce json
-// @Param Authorization header string true "Bearer JWT token" default(Bearer )
-// @Success 200 {object} models.APIResponse{data=models.PlayerStatsResponse} "Player stats"
-// @Failure 401 {object} models.APIResponse{error=models.APIError} "Unauthorized"
-// @Failure 500 {object} models.APIResponse{error=models.APIError} "Internal server error"
-// @Router /leaderboard/player/me [get]
-// @Security BearerAuth
 func (h *LeaderboardHandler) GetPlayerStats(c *fiber.Ctx) error {
-	// Get user ID from context (set by auth middleware)
-	userIDStr, ok := c.Locals("userId").(string)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(models.APIResponse{
-			Success: false,
-			Error: &models.APIError{
-				Code:    models.ErrCodeUnauthorized,
-				Message: "User not authenticated",
-			},
-		})
-	}
+	userIDStr := c.Locals("userId").(string)
+	userID, _ := uuid.Parse(userIDStr)
 
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(models.APIResponse{
-			Success: false,
-			Error: &models.APIError{
-				Code:    models.ErrCodeInvalidRequest,
-				Message: "Invalid user ID",
-			},
-		})
-	}
-
-	// Get player stats
 	stats, err := h.leaderboardService.GetPlayerStats(c.Context(), userID)
 	if err != nil {
-		log.Printf("Failed to get player stats for %s: %v", userID, err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
 			Success: false,
 			Error: &models.APIError{
@@ -168,10 +96,32 @@ func (h *LeaderboardHandler) GetPlayerStats(c *fiber.Ctx) error {
 	})
 }
 
+// GetLevelStats handles level analytics request
+func (h *LeaderboardHandler) GetLevelStats(c *fiber.Ctx) error {
+	levelID := c.Params("levelId")
+	mapID := c.Query("mapId", "")
+
+	stats, err := h.leaderboardService.GetLevelStats(c.Context(), levelID, mapID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
+			Success: false,
+			Error: &models.APIError{
+				Code:    models.ErrCodeInternalError,
+				Message: "Failed to retrieve level statistics",
+			},
+		})
+	}
+
+	return c.JSON(models.APIResponse{
+		Success: true,
+		Data:    stats,
+	})
+}
+
 // GetHollowWildsLeaderboard handles the new Hollow Wilds leaderboard request
 // @Summary Get HW Leaderboard
 // @Description Get ranked entries for a specific metric and scope
-// @Tags Hollow Wilds
+// @Tags HollowWilds
 // @Produce json
 // @Param type query string false "Metric type (longest_run_days, sebilah_soul_level, bosses_killed)" default(longest_run_days)
 // @Param scope query string false "Scope (global, per_character)" default(global)
@@ -197,7 +147,7 @@ func (h *LeaderboardHandler) GetHollowWildsLeaderboard(c *fiber.Ctx) error {
 		})
 	}
 
-	leaderboard, err := h.leaderboardService.GetHollowWildsLeaderboard(c.Context(), lbType, scope, character, limit, offset)
+	leaderboard, err := h.leaderboardUsecase.GetLeaderboard(c.Context(), lbType, scope, character, limit, offset)
 	if err != nil {
 		log.Printf("Failed to get Hollow Wilds leaderboard: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
@@ -215,7 +165,7 @@ func (h *LeaderboardHandler) GetHollowWildsLeaderboard(c *fiber.Ctx) error {
 // SubmitHollowWildsEntry handles leaderboard submission
 // @Summary Submit HW Run
 // @Description Submit a result after a run to update personal best and ranks
-// @Tags Hollow Wilds
+// @Tags HollowWilds
 // @Security BearerAuth
 // @Accept json
 // @Produce json
@@ -247,7 +197,7 @@ func (h *LeaderboardHandler) SubmitHollowWildsEntry(c *fiber.Ctx) error {
 		})
 	}
 
-	result, err := h.leaderboardService.SubmitHollowWildsEntry(c.Context(), playerID, req)
+	result, err := h.leaderboardUsecase.SubmitEntry(c.Context(), playerID, req)
 	if err != nil {
 		log.Printf("Failed to submit leaderboard entry: %v", err)
 		if strings.Contains(err.Error(), "value_too_low") {
@@ -274,7 +224,7 @@ func (h *LeaderboardHandler) SubmitHollowWildsEntry(c *fiber.Ctx) error {
 // GetPlayerHollowWildsStats handles request for player's own ranks
 // @Summary Get HW Player Ranks
 // @Description Get current ranks for the authenticated player across all types
-// @Tags Hollow Wilds
+// @Tags HollowWilds
 // @Security BearerAuth
 // @Produce json
 // @Success 200 {object} models.PlayerLeaderboardResponse "Player rankings"
@@ -292,7 +242,7 @@ func (h *LeaderboardHandler) GetPlayerHollowWildsStats(c *fiber.Ctx) error {
 	}
 	playerID, _ := uuid.Parse(playerIDStr)
 
-	stats, err := h.leaderboardService.GetPlayerHollowWildsStats(c.Context(), playerID)
+	stats, err := h.leaderboardUsecase.GetPlayerStats(c.Context(), playerID)
 	if err != nil {
 		log.Printf("Failed to get player Hollow Wilds stats: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
@@ -305,48 +255,4 @@ func (h *LeaderboardHandler) GetPlayerHollowWildsStats(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(stats)
-}
-
-// GetLevelStats handles level analytics request
-// @Summary Get level statistics
-// @Description Get aggregated analytics for a specific level
-// @Tags Analytics
-// @Produce json
-// @Param levelId path string true "Level ID (e.g., 1-1)"
-// @Param mapId query string false "Map ID filter (optional)"
-// @Success 200 {object} models.APIResponse{data=models.LevelStatsResponse} "Level statistics"
-// @Failure 500 {object} models.APIResponse{error=models.APIError} "Internal server error"
-// @Router /analytics/level-stats/{levelId} [get]
-func (h *LeaderboardHandler) GetLevelStats(c *fiber.Ctx) error {
-	// Parse path and query parameters
-	levelID := c.Params("levelId")
-	if levelID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(models.APIResponse{
-			Success: false,
-			Error: &models.APIError{
-				Code:    models.ErrCodeInvalidRequest,
-				Message: "levelId is required",
-			},
-		})
-	}
-
-	mapID := c.Query("mapId", "")
-
-	// Get level stats
-	stats, err := h.leaderboardService.GetLevelStats(c.Context(), levelID, mapID)
-	if err != nil {
-		log.Printf("Failed to get level stats for %s: %v", levelID, err)
-		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
-			Success: false,
-			Error: &models.APIError{
-				Code:    models.ErrCodeInternalError,
-				Message: "Failed to retrieve level statistics",
-			},
-		})
-	}
-
-	return c.JSON(models.APIResponse{
-		Success: true,
-		Data:    stats,
-	})
 }

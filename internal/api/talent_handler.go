@@ -3,7 +3,7 @@ package api
 import (
 	"log"
 
-	"github.com/NhomNhem/GameFeel-Backend/internal/models"
+	"github.com/NhomNhem/GameFeel-Backend/internal/domain/models"
 	"github.com/NhomNhem/GameFeel-Backend/internal/services"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -86,7 +86,7 @@ func (h *TalentHandler) UpgradeTalent(c *fiber.Ctx) error {
 	response, err := h.talentService.UpgradeTalent(c.Context(), userID, req.TalentID)
 	if err != nil {
 		log.Printf("Failed to upgrade talent for user %s: %v", userID, err)
-		
+
 		// Check error type
 		errMsg := err.Error()
 		if errMsg == "talent already at max level" {
@@ -98,7 +98,7 @@ func (h *TalentHandler) UpgradeTalent(c *fiber.Ctx) error {
 				},
 			})
 		}
-		
+
 		if len(errMsg) > 17 && errMsg[:17] == "insufficient gold" {
 			return c.Status(fiber.StatusBadRequest).JSON(models.APIResponse{
 				Success: false,
@@ -108,7 +108,7 @@ func (h *TalentHandler) UpgradeTalent(c *fiber.Ctx) error {
 				},
 			})
 		}
-		
+
 		if len(errMsg) > 10 && errMsg[:10] == "invalid talent ID" {
 			return c.Status(fiber.StatusBadRequest).JSON(models.APIResponse{
 				Success: false,
@@ -118,7 +118,7 @@ func (h *TalentHandler) UpgradeTalent(c *fiber.Ctx) error {
 				},
 			})
 		}
-		
+
 		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
 			Success: false,
 			Error: &models.APIError{

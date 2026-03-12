@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/NhomNhem/GameFeel-Backend/internal/models"
+	"github.com/NhomNhem/GameFeel-Backend/internal/domain/models"
 )
 
-const baseURL = "http://localhost:8080/api/v1"
+const baseURL = "http://localhost:8085/api/v1"
 
 func main() {
 	fmt.Println("🧪 Starting Hollow Wilds Phase 1 Integration Tests...")

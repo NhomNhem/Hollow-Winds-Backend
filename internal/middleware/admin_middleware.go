@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/NhomNhem/GameFeel-Backend/internal/database"
-	"github.com/NhomNhem/GameFeel-Backend/internal/models"
+	"github.com/NhomNhem/GameFeel-Backend/internal/domain/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )

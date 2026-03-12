@@ -4,7 +4,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/NhomNhem/GameFeel-Backend/internal/models"
+	"github.com/NhomNhem/GameFeel-Backend/internal/domain/models"
 	"github.com/NhomNhem/GameFeel-Backend/internal/services"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"

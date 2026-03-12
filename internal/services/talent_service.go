@@ -6,7 +6,7 @@ import (
 	"math"
 
 	"github.com/NhomNhem/GameFeel-Backend/internal/database"
-	"github.com/NhomNhem/GameFeel-Backend/internal/models"
+	"github.com/NhomNhem/GameFeel-Backend/internal/domain/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -86,7 +86,7 @@ func (s *TalentService) CalculateTalentCost(config *models.TalentConfig, current
 	if currentLevel >= config.MaxLevel {
 		return 0 // Already max level
 	}
-	
+
 	// Formula: baseCost * (scaling ^ currentLevel)
 	cost := float64(config.BaseCost) * math.Pow(config.CostScaling, float64(currentLevel))
 	return int(math.Round(cost))
@@ -187,7 +187,7 @@ func (s *TalentService) UpgradeTalent(ctx context.Context, userID uuid.UUID, tal
 		WHERE id = $2 
 		RETURNING gold
 	`, upgradeCost, userID).Scan(&newTotalGold)
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to deduct gold: %w", err)
 	}
@@ -200,7 +200,7 @@ func (s *TalentService) UpgradeTalent(ctx context.Context, userID uuid.UUID, tal
 		WHERE id = $2
 		RETURNING current_level
 	`, newLevel, talent.ID).Scan(&newLevel)
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to upgrade talent: %w", err)
 	}
@@ -242,7 +242,7 @@ func (s *TalentService) GetUserTalents(ctx context.Context, userID uuid.UUID) ([
 		FROM user_talents
 		WHERE user_id = $1
 	`, userID)
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to query talents: %w", err)
 	}

@@ -3,7 +3,7 @@ package api
 import (
 	"log"
 
-	"github.com/NhomNhem/GameFeel-Backend/internal/models"
+	"github.com/NhomNhem/GameFeel-Backend/internal/domain/models"
 	"github.com/NhomNhem/GameFeel-Backend/internal/services"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -96,7 +96,7 @@ func (h *LevelHandler) CompleteLevel(c *fiber.Ctx) error {
 	response, err := h.levelService.CompleteLevel(c.Context(), userID, &req)
 	if err != nil {
 		log.Printf("Failed to complete level for user %s: %v", userID, err)
-		
+
 		// Check if it's a cheating error
 		if err.Error() == "invalid completion data" {
 			return c.Status(fiber.StatusBadRequest).JSON(models.APIResponse{
@@ -107,7 +107,7 @@ func (h *LevelHandler) CompleteLevel(c *fiber.Ctx) error {
 				},
 			})
 		}
-		
+
 		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
 			Success: false,
 			Error: &models.APIError{

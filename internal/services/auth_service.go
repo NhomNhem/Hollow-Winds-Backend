@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/NhomNhem/GameFeel-Backend/internal/database"
-	"github.com/NhomNhem/GameFeel-Backend/internal/models"
+	"github.com/NhomNhem/GameFeel-Backend/internal/domain/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -38,32 +38,32 @@ func (s *AuthService) ValidatePlayFabToken(sessionToken string, playfabID string
 	if sessionToken == "" {
 		return fmt.Errorf("session token is required")
 	}
-	
+
 	if playfabID == "" {
 		return fmt.Errorf("playfab ID is required")
 	}
-	
+
 	// Get PlayFab Title ID from environment
 	titleID := os.Getenv("PLAYFAB_TITLE_ID")
 	if titleID == "" {
 		// If not configured, skip validation (development mode)
 		return nil
 	}
-	
+
 	// Call PlayFab Client API to validate the session token
 	// We use GetAccountInfo which requires valid session token
 	url := fmt.Sprintf("https://%s.playfabapi.com/Client/GetAccountInfo", titleID)
-	
+
 	reqBody := fmt.Sprintf(`{"PlayFabId": "%s"}`, playfabID)
 	req, err := http.NewRequest("POST", url, strings.NewReader(reqBody))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	// Add session token to headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Authorization", sessionToken)
-	
+
 	// Send request
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
@@ -71,24 +71,24 @@ func (s *AuthService) ValidatePlayFabToken(sessionToken string, playfabID string
 		return fmt.Errorf("failed to validate token: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	// Read response
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read response: %w", err)
 	}
-	
+
 	// Parse response
 	var pfResp PlayFabValidationResponse
 	if err := json.Unmarshal(body, &pfResp); err != nil {
 		return fmt.Errorf("failed to parse response: %w", err)
 	}
-	
+
 	// Check if validation succeeded
 	if pfResp.Code != 200 {
 		return fmt.Errorf("invalid PlayFab token: %s", pfResp.Error)
 	}
-	
+
 	return nil
 }
 
@@ -119,11 +119,11 @@ func (s *AuthService) GetOrCreateUser(ctx context.Context, playfabID string, dis
 		_, err = database.Pool.Exec(ctx, `
 			UPDATE users SET last_login_at = NOW() WHERE id = $1
 		`, user.ID)
-		
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to update last login: %w", err)
 		}
-		
+
 		user.LastLoginAt = time.Now()
 		return &user, nil
 	}

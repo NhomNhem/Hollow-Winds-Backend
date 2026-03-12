@@ -3,7 +3,7 @@ package middleware
 import (
 	"strings"
 
-	"github.com/NhomNhem/GameFeel-Backend/internal/models"
+	"github.com/NhomNhem/GameFeel-Backend/internal/domain/models"
 	"github.com/NhomNhem/GameFeel-Backend/internal/services"
 	"github.com/gofiber/fiber/v2"
 )

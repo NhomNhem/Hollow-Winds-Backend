@@ -3,7 +3,7 @@ package api
 import (
 	"log"
 
-	"github.com/NhomNhem/GameFeel-Backend/internal/models"
+	"github.com/NhomNhem/GameFeel-Backend/internal/domain/models"
 	"github.com/NhomNhem/GameFeel-Backend/internal/services"
 	"github.com/gofiber/fiber/v2"
 )
@@ -60,7 +60,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	// Get PlayFab session token from header
 	sessionToken := c.Get("X-PlayFab-SessionToken")
-	
+
 	// Validate PlayFab token (enforced in production)
 	if err := h.authService.ValidatePlayFabToken(sessionToken, req.PlayFabID); err != nil {
 		log.Printf("PlayFab token validation failed: %v", err)

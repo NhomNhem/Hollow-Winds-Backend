@@ -19,16 +19,16 @@ type AdminAction struct {
 
 // UserBan represents a user ban record
 type UserBan struct {
-	ID           uuid.UUID  `json:"id"`
-	UserID       uuid.UUID  `json:"user_id"`
-	BannedBy     uuid.UUID  `json:"banned_by"`
-	Reason       string     `json:"reason"`
-	BannedUntil  *time.Time `json:"banned_until,omitempty"` // NULL = permanent
-	IsActive     bool       `json:"is_active"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UnbannedAt   *time.Time `json:"unbanned_at,omitempty"`
-	UnbannedBy   *uuid.UUID `json:"unbanned_by,omitempty"`
-	UnbanReason  string     `json:"unban_reason,omitempty"`
+	ID          uuid.UUID  `json:"id"`
+	UserID      uuid.UUID  `json:"user_id"`
+	BannedBy    uuid.UUID  `json:"banned_by"`
+	Reason      string     `json:"reason"`
+	BannedUntil *time.Time `json:"banned_until,omitempty"` // NULL = permanent
+	IsActive    bool       `json:"is_active"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UnbannedAt  *time.Time `json:"unbanned_at,omitempty"`
+	UnbannedBy  *uuid.UUID `json:"unbanned_by,omitempty"`
+	UnbanReason string     `json:"unban_reason,omitempty"`
 }
 
 // UserSearchResponse for user search endpoint
@@ -62,12 +62,12 @@ type AdjustGoldRequest struct {
 
 // AdjustGoldResponse for gold adjustment result
 type AdjustGoldResponse struct {
-	UserID      uuid.UUID `json:"user_id"`
-	OldBalance  int       `json:"old_balance"`
-	NewBalance  int       `json:"new_balance"`
-	Adjustment  int       `json:"adjustment"`
-	Reason      string    `json:"reason"`
-	ActionID    uuid.UUID `json:"action_id"`
+	UserID     uuid.UUID `json:"user_id"`
+	OldBalance int       `json:"old_balance"`
+	NewBalance int       `json:"new_balance"`
+	Adjustment int       `json:"adjustment"`
+	Reason     string    `json:"reason"`
+	ActionID   uuid.UUID `json:"action_id"`
 }
 
 // BanUserRequest for banning a user
@@ -107,23 +107,23 @@ type AdminActionsResponse struct {
 
 // SystemStatsResponse for system overview
 type SystemStatsResponse struct {
-	TotalUsers         int       `json:"total_users"`
-	ActiveToday        int       `json:"active_today"`
-	ActiveThisWeek     int       `json:"active_this_week"`
-	ActiveThisMonth    int       `json:"active_this_month"`
-	BannedUsers        int       `json:"banned_users"`
-	AdminActionsToday  int       `json:"admin_actions_today"`
-	TotalGoldInGame    int64     `json:"total_gold_in_game"`
-	TotalStarsEarned   int64     `json:"total_stars_earned"`
-	LevelsCompleted    int64     `json:"levels_completed"`
-	LastUpdated        time.Time `json:"last_updated"`
+	TotalUsers        int       `json:"total_users"`
+	ActiveToday       int       `json:"active_today"`
+	ActiveThisWeek    int       `json:"active_this_week"`
+	ActiveThisMonth   int       `json:"active_this_month"`
+	BannedUsers       int       `json:"banned_users"`
+	AdminActionsToday int       `json:"admin_actions_today"`
+	TotalGoldInGame   int64     `json:"total_gold_in_game"`
+	TotalStarsEarned  int64     `json:"total_stars_earned"`
+	LevelsCompleted   int64     `json:"levels_completed"`
+	LastUpdated       time.Time `json:"last_updated"`
 }
 
 // ExportUserDataResponse for GDPR export
 type ExportUserDataResponse struct {
-	User             UserProfile          `json:"user"`
-	LevelCompletions []map[string]any     `json:"level_completions"`
-	Talents          []map[string]any     `json:"talents"`
-	BanHistory       []UserBan            `json:"ban_history"`
-	ExportedAt       time.Time            `json:"exported_at"`
+	User             UserProfile      `json:"user"`
+	LevelCompletions []map[string]any `json:"level_completions"`
+	Talents          []map[string]any `json:"talents"`
+	BanHistory       []UserBan        `json:"ban_history"`
+	ExportedAt       time.Time        `json:"exported_at"`
 }

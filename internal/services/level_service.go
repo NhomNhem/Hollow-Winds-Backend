@@ -7,7 +7,7 @@ import (
 	"math"
 
 	"github.com/NhomNhem/GameFeel-Backend/internal/database"
-	"github.com/NhomNhem/GameFeel-Backend/internal/models"
+	"github.com/NhomNhem/GameFeel-Backend/internal/domain/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -79,7 +79,7 @@ func (s *LevelService) CalculateStars(req *models.LevelCompletionRequest, config
 
 	for _, obj := range config.Objectives {
 		var value float64
-		
+
 		switch obj.Type {
 		case "completion":
 			value = 1 // Always true if level completed
@@ -144,7 +144,7 @@ func (s *LevelService) CompleteLevel(ctx context.Context, userID uuid.UUID, req 
 		log.Printf("Anti-cheat SEVERE for user %s: %v", userID, antiCheat.Reasons)
 		return nil, fmt.Errorf("invalid completion data")
 	}
-	
+
 	if antiCheat.Level == models.AntiCheatModerate {
 		log.Printf("Anti-cheat MODERATE for user %s: %v", userID, antiCheat.Reasons)
 		// Continue but log

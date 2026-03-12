@@ -93,6 +93,7 @@ func (e *VersionConflictError) Error() string {
 
 // AnalyticsEvent represents a single analytics event
 type AnalyticsEvent struct {
+	UserID    interface{}            `json:"user_id"`
 	EventName string                 `json:"event_name" validate:"required"`
 	Timestamp string                 `json:"timestamp" validate:"required"`
 	SessionID string                 `json:"session_id"`

@@ -1,32 +1,39 @@
-package api
+package http
 
 import (
 	"fmt"
 	"log"
-	"strings"
 
-	"github.com/NhomNhem/GameFeel-Backend/internal/models"
-	"github.com/NhomNhem/GameFeel-Backend/internal/services"
+	"github.com/NhomNhem/GameFeel-Backend/internal/domain/models"
+	"github.com/NhomNhem/GameFeel-Backend/internal/domain/usecase"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
 
 // HollowWildsHandler handles Hollow Wilds game endpoints
 type HollowWildsHandler struct {
-	hollowWildsService *services.HollowWildsService
+	authUsecase      usecase.AuthUsecase
+	playerUsecase    usecase.PlayerUsecase
+	analyticsUsecase usecase.AnalyticsUsecase
 }
 
 // NewHollowWildsHandler creates a new Hollow Wilds handler
-func NewHollowWildsHandler() *HollowWildsHandler {
+func NewHollowWildsHandler(
+	authUsecase usecase.AuthUsecase,
+	playerUsecase usecase.PlayerUsecase,
+	analyticsUsecase usecase.AnalyticsUsecase,
+) *HollowWildsHandler {
 	return &HollowWildsHandler{
-		hollowWildsService: services.NewHollowWildsService(),
+		authUsecase:      authUsecase,
+		playerUsecase:    playerUsecase,
+		analyticsUsecase: analyticsUsecase,
 	}
 }
 
 // Login handles Hollow Wilds player login
 // @Summary Hollow Wilds Login
 // @Description Authenticate player with PlayFab ticket and get HW session JWT
-// @Tags Hollow Wilds
+// @Tags HollowWilds
 // @Accept json
 // @Produce json
 // @Param X-PlayFab-ID header string true "PlayFab ID"
@@ -47,65 +54,25 @@ func (h *HollowWildsHandler) Login(c *fiber.Ctx) error {
 		})
 	}
 
-	// Validate ticket and get the verified PlayFab ID
-	playfabID, err := h.hollowWildsService.ValidatePlayFabTicket(req.PlayfabSessionTicket)
+	overrideID := c.Get("X-PlayFab-ID")
+	resp, err := h.authUsecase.Login(c.Context(), req.PlayfabSessionTicket, overrideID)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(models.APIResponse{
 			Success: false,
 			Error: &models.APIError{
 				Code:    models.ErrCodeUnauthorized,
-				Message: "Invalid PlayFab session ticket",
+				Message: err.Error(),
 			},
 		})
 	}
 
-	// In development mode, allow override via header if specified
-	if playfabID == "MOCK_PLAYFAB_ID" {
-		if headerID := c.Get("X-PlayFab-ID"); headerID != "" {
-			playfabID = headerID
-		}
-	}
-
-	player, err := h.hollowWildsService.GetOrCreatePlayer(c.Context(), playfabID, nil)
-	if err != nil {
-		log.Printf("Failed to get/create player: %v", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
-			Success: false,
-			Error: &models.APIError{
-				Code:    models.ErrCodeInternalError,
-				Message: "Failed to authenticate player",
-			},
-		})
-	}
-
-	token, expiresIn, err := h.hollowWildsService.GenerateJWT(player.ID, player.PlayFabID)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
-			Success: false,
-			Error: &models.APIError{
-				Code:    models.ErrCodeInternalError,
-				Message: "Failed to generate token",
-			},
-		})
-	}
-
-	refreshToken, err := h.hollowWildsService.GenerateRefreshToken(c.Context(), player.ID)
-	if err != nil {
-		log.Printf("Failed to generate refresh token: %v", err)
-	}
-
-	return c.JSON(models.HollowWildsAuthResponse{
-		Token:        token,
-		RefreshToken: refreshToken,
-		ExpiresIn:    expiresIn,
-		PlayerID:     player.ID.String(),
-	})
+	return c.JSON(resp)
 }
 
 // Refresh handles token refresh
 // @Summary Refresh HW Token
 // @Description Get a new JWT using a refresh token
-// @Tags Hollow Wilds
+// @Tags HollowWilds
 // @Accept json
 // @Produce json
 // @Param request body models.RefreshTokenRequest true "Refresh request"
@@ -124,43 +91,24 @@ func (h *HollowWildsHandler) Refresh(c *fiber.Ctx) error {
 		})
 	}
 
-	playerIDStr, err := h.hollowWildsService.ValidateRefreshToken(c.Context(), req.RefreshToken)
+	resp, err := h.authUsecase.RefreshToken(c.Context(), req.RefreshToken)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(models.APIResponse{
 			Success: false,
 			Error: &models.APIError{
 				Code:    models.ErrCodeUnauthorized,
-				Message: "Invalid refresh token",
+				Message: err.Error(),
 			},
 		})
 	}
 
-	playerID, _ := uuid.Parse(playerIDStr)
-	// We'd need the playfabId too, let's assume we can get it from DB or it's in the refresh token data
-	// For simplicity, we'll just use a placeholder or look it up
-	// In a real app, the refresh token would store the playfabId too.
-
-	token, expiresIn, err := h.hollowWildsService.GenerateJWT(playerID, "REFRESHED")
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
-			Success: false,
-			Error: &models.APIError{
-				Code:    models.ErrCodeInternalError,
-				Message: "Failed to generate token",
-			},
-		})
-	}
-
-	return c.JSON(models.RefreshTokenResponse{
-		Token:     token,
-		ExpiresIn: expiresIn,
-	})
+	return c.JSON(resp)
 }
 
 // Logout handles player logout
 // @Summary HW Logout
 // @Description Revoke tokens and logout
-// @Tags Hollow Wilds
+// @Tags HollowWilds
 // @Security BearerAuth
 // @Accept json
 // @Produce json
@@ -168,16 +116,14 @@ func (h *HollowWildsHandler) Refresh(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]bool "Success"
 // @Router /auth/logout [delete]
 func (h *HollowWildsHandler) Logout(c *fiber.Ctx) error {
-	// Blacklist current JWT
-	authHeader := c.Get("Authorization")
-	if strings.HasPrefix(authHeader, "Bearer ") {
-		// In a real app, we'd parse the token to get JTI and blacklist it
-	}
-
-	// Revoke refresh token if provided
 	var req models.RefreshTokenRequest
-	if err := c.BodyParser(&req); err == nil && req.RefreshToken != "" {
-		h.hollowWildsService.RevokeRefreshToken(c.Context(), req.RefreshToken)
+	c.BodyParser(&req) // Optional, don't fail if missing
+
+	// Extract JTI from JWT (in a real app, we'd have a token util)
+	// For now, we'll just handle refresh token if provided
+	err := h.authUsecase.Logout(c.Context(), req.RefreshToken, "")
+	if err != nil {
+		log.Printf("Logout warning: %v", err)
 	}
 
 	return c.JSON(fiber.Map{"success": true})
@@ -186,7 +132,7 @@ func (h *HollowWildsHandler) Logout(c *fiber.Ctx) error {
 // GetSave retrieves player save data
 // @Summary Load HW Game
 // @Description Get the full game state for the player
-// @Tags Hollow Wilds
+// @Tags HollowWilds
 // @Security BearerAuth
 // @Produce json
 // @Success 200 {object} models.LoadGameResponse "Game save data"
@@ -196,7 +142,7 @@ func (h *HollowWildsHandler) GetSave(c *fiber.Ctx) error {
 	playerIDStr := c.Locals("userId").(string)
 	playerID, _ := uuid.Parse(playerIDStr)
 
-	save, err := h.hollowWildsService.GetPlayerSave(c.Context(), playerID)
+	save, err := h.playerUsecase.GetSave(c.Context(), playerID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
 			Success: false,
@@ -234,7 +180,7 @@ func (h *HollowWildsHandler) GetSave(c *fiber.Ctx) error {
 // UpdateSave updates player save data
 // @Summary Save HW Game
 // @Description Persist the game state with version control
-// @Tags Hollow Wilds
+// @Tags HollowWilds
 // @Security BearerAuth
 // @Accept json
 // @Produce json
@@ -247,7 +193,6 @@ func (h *HollowWildsHandler) UpdateSave(c *fiber.Ctx) error {
 	playerIDStr := fmt.Sprintf("%v", c.Locals("userId"))
 	playerID, err := uuid.Parse(playerIDStr)
 	if err != nil {
-		log.Printf("Failed to parse player ID: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
 			Success: false,
 			Error: &models.APIError{
@@ -268,10 +213,8 @@ func (h *HollowWildsHandler) UpdateSave(c *fiber.Ctx) error {
 		})
 	}
 
-	// Expected version for optimistic locking (multiplayer Phase 3)
 	expectedVersion := c.QueryInt("version", 0)
-
-	save, err := h.hollowWildsService.SavePlayerSave(c.Context(), playerID, models.GameSaveData{
+	save, err := h.playerUsecase.SaveGame(c.Context(), playerID, models.GameSaveData{
 		World:          req.World,
 		Player:         req.Player,
 		Inventory:      req.Inventory,
@@ -304,7 +247,7 @@ func (h *HollowWildsHandler) UpdateSave(c *fiber.Ctx) error {
 // CreateBackup creates a save backup
 // @Summary Create HW Backup
 // @Description Manually trigger a save backup
-// @Tags Hollow Wilds
+// @Tags HollowWilds
 // @Security BearerAuth
 // @Produce json
 // @Success 200 {object} models.BackupResponse "Backup created"
@@ -313,7 +256,7 @@ func (h *HollowWildsHandler) CreateBackup(c *fiber.Ctx) error {
 	playerIDStr := c.Locals("userId").(string)
 	playerID, _ := uuid.Parse(playerIDStr)
 
-	backup, err := h.hollowWildsService.CreateBackup(c.Context(), playerID)
+	backup, err := h.playerUsecase.CreateBackup(c.Context(), playerID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
 			Success: false,
@@ -334,7 +277,7 @@ func (h *HollowWildsHandler) CreateBackup(c *fiber.Ctx) error {
 // GetBackups lists player backups
 // @Summary List HW Backups
 // @Description Get list of all save backups for the player
-// @Tags Hollow Wilds
+// @Tags HollowWilds
 // @Security BearerAuth
 // @Produce json
 // @Success 200 {object} models.BackupListResponse "Backup list"
@@ -343,7 +286,7 @@ func (h *HollowWildsHandler) GetBackups(c *fiber.Ctx) error {
 	playerIDStr := c.Locals("userId").(string)
 	playerID, _ := uuid.Parse(playerIDStr)
 
-	backups, err := h.hollowWildsService.GetBackups(c.Context(), playerID)
+	backups, err := h.playerUsecase.GetBackups(c.Context(), playerID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(models.APIResponse{
 			Success: false,
@@ -371,7 +314,7 @@ func (h *HollowWildsHandler) GetBackups(c *fiber.Ctx) error {
 // TrackEvents records analytics events
 // @Summary Track HW Events
 // @Description Submit a batch of analytics events
-// @Tags Hollow Wilds
+// @Tags HollowWilds
 // @Security BearerAuth
 // @Accept json
 // @Produce json
@@ -396,7 +339,10 @@ func (h *HollowWildsHandler) TrackEvents(c *fiber.Ctx) error {
 		playerID = &id
 	}
 
-	accepted, rejected := h.hollowWildsService.RecordAnalyticsEvents(c.Context(), playerID, req.Events)
+	accepted, rejected, err := h.analyticsUsecase.TrackEvents(c.Context(), playerID, req.Events)
+	if err != nil {
+		log.Printf("Analytics error: %v", err)
+	}
 
 	return c.JSON(models.AnalyticsEventsResponse{
 		Accepted: accepted,

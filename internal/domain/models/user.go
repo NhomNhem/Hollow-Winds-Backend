@@ -8,33 +8,33 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID          uuid.UUID  `json:"id"`
-	PlayFabID   string     `json:"playfabId"`
-	DisplayName *string    `json:"displayName,omitempty"`
-	
+	ID          uuid.UUID `json:"id"`
+	PlayFabID   string    `json:"playfabId"`
+	DisplayName *string   `json:"displayName,omitempty"`
+
 	// Currency
 	Gold     int `json:"gold"`
 	Diamonds int `json:"diamonds"`
-	
+
 	// Progression
-	MaxMapUnlocked       int `json:"maxMapUnlocked"`
-	TotalStarsCollected  int `json:"totalStarsCollected"`
-	
+	MaxMapUnlocked      int `json:"maxMapUnlocked"`
+	TotalStarsCollected int `json:"totalStarsCollected"`
+
 	// Metadata
-	CreatedAt       time.Time  `json:"createdAt"`
-	LastLoginAt     time.Time  `json:"lastLoginAt"`
-	LastPlayedAt    *time.Time `json:"lastPlayedAt,omitempty"`
-	TotalPlayTimeSeconds *int  `json:"totalPlayTimeSeconds,omitempty"`
-	
+	CreatedAt            time.Time  `json:"createdAt"`
+	LastLoginAt          time.Time  `json:"lastLoginAt"`
+	LastPlayedAt         *time.Time `json:"lastPlayedAt,omitempty"`
+	TotalPlayTimeSeconds *int       `json:"totalPlayTimeSeconds,omitempty"`
+
 	// Social
 	FacebookID *string `json:"facebookId,omitempty"`
 	GoogleID   *string `json:"googleId,omitempty"`
-	
+
 	// Flags
 	IsBanned  bool       `json:"isBanned"`
 	BanReason *string    `json:"banReason,omitempty"`
 	BannedAt  *time.Time `json:"bannedAt,omitempty"`
-	
+
 	// GDPR
 	DeletedAt *time.Time `json:"deletedAt,omitempty"`
 }
