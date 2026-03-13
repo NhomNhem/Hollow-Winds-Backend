@@ -40,21 +40,30 @@ temp/
 *.db
 *.sqlite
 
-
+# Agent folders
+.agent/
+.amazonq/
+.augment/
 .claude/
 .cline/
+.clinerules/
+.codebuddy/
 .codex/
 .continue/
+.cospec/
 .crush/
 .cursor/
+.factory/
 .gemini/
 .iflow/
-.kilo/, .kilocode/, .kiro/
+.kilo/
+.kilocode/
+.kiro/
 .opencode/
-.pi/, .qoder/, .qwen/
-.roo/, .trae/
-.windsurf/
-.amazonq/, .augment/
-.codebuddy/, .cospec/
-.factory/
+.pi/
+.qoder/
+.qwen/
+.roo/
+.trae/
 .vi/
+.windsurf/
