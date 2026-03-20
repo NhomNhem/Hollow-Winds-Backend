@@ -6,14 +6,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/models"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/repository"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/usecase"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/models"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/repository"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/usecase"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
 type authUsecase struct {
+	userRepo     repository.UserRepository
 	playerRepo   repository.PlayerRepository
 	identityRepo repository.IdentityRepository
 	tokenRepo    repository.TokenRepository
@@ -21,18 +22,20 @@ type authUsecase struct {
 
 // NewAuthUsecase creates a new authentication usecase
 func NewAuthUsecase(
+	userRepo repository.UserRepository,
 	playerRepo repository.PlayerRepository,
 	identityRepo repository.IdentityRepository,
 	tokenRepo repository.TokenRepository,
 ) usecase.AuthUsecase {
 	return &authUsecase{
+		userRepo:     userRepo,
 		playerRepo:   playerRepo,
 		identityRepo: identityRepo,
 		tokenRepo:    tokenRepo,
 	}
 }
 
-func (u *authUsecase) Login(ctx context.Context, sessionTicket string, overridePlayFabID string) (*models.HollowWildsAuthResponse, error) {
+func (u *authUsecase) Login(ctx context.Context, sessionTicket string, overridePlayFabID string) (*models.AuthResponse, error) {
 	// 1. Validate PlayFab ticket
 	playfabID, err := u.identityRepo.ValidateTicket(ctx, sessionTicket)
 	if err != nil {
@@ -44,60 +47,78 @@ func (u *authUsecase) Login(ctx context.Context, sessionTicket string, overrideP
 		playfabID = overridePlayFabID
 	}
 
-	// 3. Get or create player
-	player, err := u.playerRepo.GetByPlayFabID(ctx, playfabID)
+	// 3. Get or create platform user
+	user, err := u.userRepo.GetByPlayFabID(ctx, playfabID)
 	if err != nil {
 		return nil, err
 	}
 
+	if user == nil {
+		user = &models.User{
+			ID:          uuid.New(),
+			PlayFabID:   playfabID,
+			SystemRole:  models.RoleUser,
+			CreatedAt:   time.Now(),
+			LastLoginAt: time.Now(),
+		}
+		if err := u.userRepo.Create(ctx, user); err != nil {
+			return nil, err
+		}
+	} else {
+		// Update last login
+		_ = u.userRepo.UpdateLastLogin(ctx, user.ID)
+	}
+
+	// 4. Ensure game-specific player profile exists (for Hollow Wilds)
+	// In the future, this should be game-agnostic or moved to a dynamic handler
+	player, _ := u.playerRepo.GetByPlayFabID(ctx, playfabID)
 	if player == nil {
 		player = &models.Player{
-			ID:         uuid.New(),
+			ID:         user.ID, // Link by ID for consistency
 			PlayFabID:  playfabID,
 			CreatedAt:  time.Now(),
 			LastSeenAt: time.Now(),
 		}
-		if err := u.playerRepo.Create(ctx, player); err != nil {
-			return nil, err
-		}
+		_ = u.playerRepo.Create(ctx, player)
 	} else {
-		// Update last seen
-		if err := u.playerRepo.UpdateLastSeen(ctx, player.ID); err != nil {
-			// Non-critical, just log or continue
-		}
+		_ = u.playerRepo.UpdateLastSeen(ctx, player.ID)
 	}
 
-	// 4. Generate JWT
-	token, expiresIn, err := u.generateJWT(player.ID.String(), player.PlayFabID)
+	// 5. Generate JWT with proper role
+	token, expiresIn, err := u.generateJWT(user.ID.String(), user.PlayFabID, user.SystemRole)
 	if err != nil {
 		return nil, err
 	}
 
-	// 5. Generate Refresh Token
+	// 6. Generate Refresh Token (30 days TTL per Master Plan)
 	refreshToken := uuid.New().String()
-	if err := u.tokenRepo.StoreRefreshToken(ctx, refreshToken, player.ID.String(), 7*24*time.Hour); err != nil {
-		// Log error but return access token anyway? Or fail?
-		// For consistency with old implementation, we continue
-	}
+	_ = u.tokenRepo.StoreRefreshToken(ctx, refreshToken, user.ID.String(), 30*24*time.Hour)
 
-	return &models.HollowWildsAuthResponse{
-		Token:        token,
+	return &models.AuthResponse{
+		JWT:          token,
 		RefreshToken: refreshToken,
 		ExpiresIn:    expiresIn,
-		PlayerID:     player.ID.String(),
+		User:         *user,
 	}, nil
 }
 
 func (u *authUsecase) RefreshToken(ctx context.Context, refreshToken string) (*models.RefreshTokenResponse, error) {
-	playerIDStr, err := u.tokenRepo.GetRefreshToken(ctx, refreshToken)
-	if err != nil || playerIDStr == "" {
+	userIDStr, err := u.tokenRepo.GetRefreshToken(ctx, refreshToken)
+	if err != nil || userIDStr == "" {
 		return nil, fmt.Errorf("invalid or expired refresh token")
 	}
 
-	// We need PlayFabID for JWT, but it's not in the refresh token.
-	// For now, we'll use a placeholder as in the old implementation,
-	// or we could look up the player.
-	token, expiresIn, err := u.generateJWT(playerIDStr, "REFRESHED")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user id in token")
+	}
+
+	user, err := u.userRepo.GetByID(ctx, userID)
+	if err != nil || user == nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	token, expiresIn, err := u.generateJWT(user.ID.String(), user.PlayFabID, user.SystemRole)
 	if err != nil {
 		return nil, err
 	}
@@ -110,56 +131,38 @@ func (u *authUsecase) RefreshToken(ctx context.Context, refreshToken string) (*m
 
 func (u *authUsecase) Logout(ctx context.Context, refreshToken string, jti string) error {
 	if refreshToken != "" {
-		u.tokenRepo.DeleteRefreshToken(ctx, refreshToken)
+		_ = u.tokenRepo.DeleteRefreshToken(ctx, refreshToken)
 	}
 	if jti != "" {
-		u.tokenRepo.BlacklistJWT(ctx, jti, 24*time.Hour)
+		_ = u.tokenRepo.BlacklistJWT(ctx, jti, 24*time.Hour)
 	}
 	return nil
 }
 
 func (u *authUsecase) LegacyLogin(ctx context.Context, playfabID, displayName, sessionToken string) (*models.AuthResponse, error) {
-	// 1. Validate PlayFab token using identityRepo
-	// IdentityRepo usually uses Ticket, but here we have SessionToken from legacy
-	// We might need to add a method to IdentityRepository or handle it here
-	// For simplicity, we'll assume identityRepo can handle it or skip if dev
-
-	// 2. Get or create player (which is User in legacy)
-	player, err := u.playerRepo.GetByPlayFabID(ctx, playfabID)
+	// Re-use core Login logic but with display name hint
+	user, err := u.userRepo.GetByPlayFabID(ctx, playfabID)
 	if err != nil {
 		return nil, err
 	}
 
-	if player == nil {
-		player = &models.Player{
+	if user == nil {
+		user = &models.User{
 			ID:          uuid.New(),
 			PlayFabID:   playfabID,
 			DisplayName: &displayName,
+			SystemRole:  models.RoleUser,
 			CreatedAt:   time.Now(),
-			LastSeenAt:  time.Now(),
+			LastLoginAt: time.Now(),
 		}
-		if err := u.playerRepo.Create(ctx, player); err != nil {
+		if err := u.userRepo.Create(ctx, user); err != nil {
 			return nil, err
 		}
-	} else {
-		u.playerRepo.UpdateLastSeen(ctx, player.ID)
 	}
 
-	// 3. Generate JWT
-	token, expiresIn, err := u.generateJWT(player.ID.String(), player.PlayFabID)
+	token, expiresIn, err := u.generateJWT(user.ID.String(), user.PlayFabID, user.SystemRole)
 	if err != nil {
 		return nil, err
-	}
-
-	// Legacy uses internal/domain/models.User, but we have Player.
-	// Map Player to User for response consistency.
-	user := &models.User{
-		ID:        player.ID,
-		PlayFabID: player.PlayFabID,
-		// ... other fields if needed
-	}
-	if player.DisplayName != nil {
-		user.DisplayName = player.DisplayName
 	}
 
 	return &models.AuthResponse{
@@ -169,26 +172,35 @@ func (u *authUsecase) LegacyLogin(ctx context.Context, playfabID, displayName, s
 	}, nil
 }
 
-func (u *authUsecase) generateJWT(playerID, playfabID string) (string, int, error) {
+func (u *authUsecase) generateJWT(userID, playfabID string, role models.SystemRole) (string, int, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		jwtSecret = "dev-secret-key-123"
 	}
 
+	// 60 minutes TTL per Master Plan
 	expiresIn := 3600
 	now := time.Now()
 	expiresAt := now.Add(time.Duration(expiresIn) * time.Second)
 
-	claims := jwt.MapClaims{
-		"userId":    playerID,
-		"sub":       playerID,
-		"playfabId": playfabID,
-		"iat":       now.Unix(),
-		"exp":       expiresAt.Unix(),
-		"jti":       uuid.New().String(),
+	claims := models.JWTClaims{
+		UserID:    userID,
+		PlayFabID: playfabID,
+		Role:      role,
+		IssuedAt:  now.Unix(),
+		ExpiresAt: expiresAt.Unix(),
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userId":    claims.UserID,
+		"sub":       claims.UserID,
+		"playfabId": claims.PlayFabID,
+		"role":      string(claims.Role),
+		"iat":       claims.IssuedAt,
+		"exp":       claims.ExpiresAt,
+		"jti":       uuid.New().String(),
+	})
+
 	tokenString, err := token.SignedString([]byte(jwtSecret))
 	if err != nil {
 		return "", 0, fmt.Errorf("failed to sign token: %w", err)

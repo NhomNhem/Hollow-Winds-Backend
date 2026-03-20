@@ -3,8 +3,8 @@ package api
 import (
 	"time"
 
-	"github.com/NhomNhem/HollowWilds-Backend/internal/delivery/http"
-	usecase_mock "github.com/NhomNhem/HollowWilds-Backend/internal/mocks/usecase"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/delivery/http"
+	usecase_mock "github.com/NhomNhem/NhemDangFugBixs-Core/internal/mocks/usecase"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 )

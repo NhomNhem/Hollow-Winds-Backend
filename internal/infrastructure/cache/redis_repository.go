@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/repository"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/repository"
 	"github.com/redis/go-redis/v9"
 )
 

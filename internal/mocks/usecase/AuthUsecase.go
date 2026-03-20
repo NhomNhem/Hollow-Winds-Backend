@@ -5,7 +5,7 @@ package usecase_mock
 import (
 	context "context"
 
-	models "github.com/NhomNhem/HollowWilds-Backend/internal/domain/models"
+	models "github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/models"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -84,23 +84,23 @@ func (_c *MockAuthUsecase_LegacyLogin_Call) RunAndReturn(run func(context.Contex
 }
 
 // Login provides a mock function with given fields: ctx, sessionTicket, overridePlayFabID
-func (_m *MockAuthUsecase) Login(ctx context.Context, sessionTicket string, overridePlayFabID string) (*models.HollowWildsAuthResponse, error) {
+func (_m *MockAuthUsecase) Login(ctx context.Context, sessionTicket string, overridePlayFabID string) (*models.AuthResponse, error) {
 	ret := _m.Called(ctx, sessionTicket, overridePlayFabID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Login")
 	}
 
-	var r0 *models.HollowWildsAuthResponse
+	var r0 *models.AuthResponse
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*models.HollowWildsAuthResponse, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*models.AuthResponse, error)); ok {
 		return rf(ctx, sessionTicket, overridePlayFabID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *models.HollowWildsAuthResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *models.AuthResponse); ok {
 		r0 = rf(ctx, sessionTicket, overridePlayFabID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*models.HollowWildsAuthResponse)
+			r0 = ret.Get(0).(*models.AuthResponse)
 		}
 	}
 
@@ -133,12 +133,12 @@ func (_c *MockAuthUsecase_Login_Call) Run(run func(ctx context.Context, sessionT
 	return _c
 }
 
-func (_c *MockAuthUsecase_Login_Call) Return(_a0 *models.HollowWildsAuthResponse, _a1 error) *MockAuthUsecase_Login_Call {
+func (_c *MockAuthUsecase_Login_Call) Return(_a0 *models.AuthResponse, _a1 error) *MockAuthUsecase_Login_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockAuthUsecase_Login_Call) RunAndReturn(run func(context.Context, string, string) (*models.HollowWildsAuthResponse, error)) *MockAuthUsecase_Login_Call {
+func (_c *MockAuthUsecase_Login_Call) RunAndReturn(run func(context.Context, string, string) (*models.AuthResponse, error)) *MockAuthUsecase_Login_Call {
 	_c.Call.Return(run)
 	return _c
 }

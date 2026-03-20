@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/models"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/usecase"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/models"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/usecase"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )

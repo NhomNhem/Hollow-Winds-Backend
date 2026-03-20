@@ -1,4 +1,4 @@
-module github.com/NhomNhem/HollowWilds-Backend
+module github.com/NhomNhem/NhemDangFugBixs-Core
 
 go 1.25.1
 

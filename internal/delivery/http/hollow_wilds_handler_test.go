@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/models"
-	usecase_mock "github.com/NhomNhem/HollowWilds-Backend/internal/mocks/usecase"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/models"
+	usecase_mock "github.com/NhomNhem/NhemDangFugBixs-Core/internal/mocks/usecase"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -27,9 +27,13 @@ func TestHollowWildsHandler_Login(t *testing.T) {
 		reqBody := models.HollowWildsLoginRequest{
 			PlayfabSessionTicket: "valid-ticket",
 		}
-		expectedResp := &models.HollowWildsAuthResponse{
-			Token:    "jwt-token",
-			PlayerID: "player-123",
+		expectedResp := &models.AuthResponse{
+			JWT:          "jwt-token",
+			RefreshToken: "refresh-token",
+			User: models.User{
+				ID:        uuid.New(),
+				PlayFabID: "PF_123",
+			},
 		}
 
 		authUsecase.On("Login", mock.Anything, reqBody.PlayfabSessionTicket, "PF_123").Return(expectedResp, nil).Once()
@@ -44,9 +48,9 @@ func TestHollowWildsHandler_Login(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		var result models.HollowWildsAuthResponse
+		var result models.AuthResponse
 		json.NewDecoder(resp.Body).Decode(&result)
-		assert.Equal(t, expectedResp.Token, result.Token)
+		assert.Equal(t, expectedResp.JWT, result.JWT)
 		authUsecase.AssertExpectations(t)
 	})
 }

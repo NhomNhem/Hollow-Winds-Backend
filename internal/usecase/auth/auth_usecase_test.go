@@ -5,18 +5,19 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/models"
-	repository_mock "github.com/NhomNhem/HollowWilds-Backend/internal/mocks/repository"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/models"
+	repository_mock "github.com/NhomNhem/NhemDangFugBixs-Core/internal/mocks/repository"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
 func TestAuthUsecase_Login(t *testing.T) {
+	userRepo := new(repository_mock.MockUserRepository)
 	playerRepo := new(repository_mock.MockPlayerRepository)
 	identityRepo := new(repository_mock.MockIdentityRepository)
 	tokenRepo := new(repository_mock.MockTokenRepository)
-	usecase := NewAuthUsecase(playerRepo, identityRepo, tokenRepo)
+	usecase := NewAuthUsecase(userRepo, playerRepo, identityRepo, tokenRepo)
 
 	ctx := context.Background()
 	ticket := "valid-ticket"
@@ -25,6 +26,12 @@ func TestAuthUsecase_Login(t *testing.T) {
 
 	t.Run("successful login for existing player", func(t *testing.T) {
 		identityRepo.On("ValidateTicket", ctx, ticket).Return(playfabID, nil).Once()
+		userRepo.On("GetByPlayFabID", ctx, playfabID).Return(&models.User{
+			ID:         playerID,
+			PlayFabID:  playfabID,
+			SystemRole: models.RoleUser,
+		}, nil).Once()
+		userRepo.On("UpdateLastLogin", ctx, playerID).Return(nil).Once()
 		playerRepo.On("GetByPlayFabID", ctx, playfabID).Return(&models.Player{
 			ID:        playerID,
 			PlayFabID: playfabID,
@@ -36,11 +43,12 @@ func TestAuthUsecase_Login(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
-		assert.Equal(t, playerID.String(), resp.PlayerID)
-		assert.NotEmpty(t, resp.Token)
+		assert.Equal(t, playerID, resp.User.ID)
+		assert.NotEmpty(t, resp.JWT)
 		assert.NotEmpty(t, resp.RefreshToken)
 
 		identityRepo.AssertExpectations(t)
+		userRepo.AssertExpectations(t)
 		playerRepo.AssertExpectations(t)
 		tokenRepo.AssertExpectations(t)
 	})
@@ -57,10 +65,11 @@ func TestAuthUsecase_Login(t *testing.T) {
 }
 
 func TestAuthUsecase_Logout(t *testing.T) {
+	userRepo := new(repository_mock.MockUserRepository)
 	playerRepo := new(repository_mock.MockPlayerRepository)
 	identityRepo := new(repository_mock.MockIdentityRepository)
 	tokenRepo := new(repository_mock.MockTokenRepository)
-	usecase := NewAuthUsecase(playerRepo, identityRepo, tokenRepo)
+	usecase := NewAuthUsecase(userRepo, playerRepo, identityRepo, tokenRepo)
 
 	ctx := context.Background()
 	refreshToken := "ref-123"

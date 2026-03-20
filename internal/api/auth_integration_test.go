@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/models"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

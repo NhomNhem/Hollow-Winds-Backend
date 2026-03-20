@@ -18,27 +18,28 @@ import (
 	"github.com/gofiber/swagger"
 	"github.com/joho/godotenv"
 
-	_ "github.com/NhomNhem/HollowWilds-Backend/docs"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/database"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/delivery/http"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/models"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/infrastructure/cache"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/infrastructure/identity"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/infrastructure/persistence"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/middleware"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/usecase/admin"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/usecase/analytics"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/usecase/auth"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/usecase/leaderboard"
-	// "github.com/NhomNhem/HollowWilds-Backend/internal/usecase/level" // DISABLED
-	"github.com/NhomNhem/HollowWilds-Backend/internal/usecase/player"
-	// "github.com/NhomNhem/HollowWilds-Backend/internal/usecase/talent" // DISABLED
-	"github.com/NhomNhem/HollowWilds-Backend/pkg/utils"
+	_ "github.com/NhomNhem/NhemDangFugBixs-Core/docs"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/database"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/delivery/http"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/models"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/infrastructure/cache"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/infrastructure/identity"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/infrastructure/persistence"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/middleware"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/usecase/admin"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/usecase/analytics"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/usecase/auth"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/usecase/leaderboard"
+
+	// "github.com/NhomNhem/NhemDangFugBixs-Core/internal/usecase/level" // DISABLED
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/usecase/player"
+	// "github.com/NhomNhem/NhemDangFugBixs-Core/internal/usecase/talent" // DISABLED
+	"github.com/NhomNhem/NhemDangFugBixs-Core/pkg/utils"
 )
 
-// @title Hollow Wilds Backend API
-// @version 1.1.0
-// @description Game backend API với PlayFab integration, anti-cheat validation, và talent system
+// @title NhemDangFugBixs Core API
+// @version 1.2.0
+// @description Đa nền tảng Game Backend Core với PlayFab integration, tiered RBAC và multi-game support
 // @termsOfService http://swagger.io/terms/
 
 // @contact.name API Support
@@ -226,6 +227,7 @@ func main() {
 	})
 
 	// Initialize Infrastructure
+	userRepo := persistence.NewPostgresUserRepository(database.Pool)
 	playerRepo := persistence.NewPostgresPlayerRepository(database.Pool)
 	saveRepo := persistence.NewPostgresSaveRepository(database.Pool)
 	leaderboardRepo := persistence.NewPostgresLeaderboardRepository(database.Pool)
@@ -237,7 +239,7 @@ func main() {
 	identityRepo := identity.NewPlayFabRepository()
 
 	// Initialize Usecases
-	authUsecase := auth.NewAuthUsecase(playerRepo, identityRepo, redisRepo)
+	authUsecase := auth.NewAuthUsecase(userRepo, playerRepo, identityRepo, redisRepo)
 	playerUsecase := player.NewPlayerUsecase(playerRepo, saveRepo, redisRepo)
 	leaderboardUsecase := leaderboard.NewLeaderboardUsecase(leaderboardRepo, playerRepo, identityRepo, redisRepo)
 	analyticsUsecase := analytics.NewAnalyticsUsecase(analyticsRepo)
@@ -324,7 +326,7 @@ func main() {
 	// Protected admin routes
 	adminProtected := admin.Group("",
 		middleware.AuthMiddleware(),
-		middleware.AdminMiddleware(),
+		middleware.RoleMiddleware(models.RoleAdmin),
 	)
 	adminProtected.Post("/auth/set-password", adminHandler.SetAdminPassword)
 	adminProtected.Get("/users/search", adminHandler.SearchUsers)

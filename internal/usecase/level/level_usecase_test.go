@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/models"
-	repository_mock "github.com/NhomNhem/HollowWilds-Backend/internal/mocks/repository"
-	usecase_mock "github.com/NhomNhem/HollowWilds-Backend/internal/mocks/usecase"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/models"
+	repository_mock "github.com/NhomNhem/NhemDangFugBixs-Core/internal/mocks/repository"
+	usecase_mock "github.com/NhomNhem/NhemDangFugBixs-Core/internal/mocks/usecase"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

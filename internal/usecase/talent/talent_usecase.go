@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/models"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/repository"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/usecase"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/models"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/repository"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/usecase"
 	"github.com/google/uuid"
 )
 

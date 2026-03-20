@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	"github.com/NhomNhem/HollowWilds-Backend/internal/database"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/models"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/database"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )

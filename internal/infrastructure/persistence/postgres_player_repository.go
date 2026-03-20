@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/models"
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/repository"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/models"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/repository"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"

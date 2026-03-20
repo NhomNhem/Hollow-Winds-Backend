@@ -1,8 +1,9 @@
-# Hollow Wilds Backend Server
+# NhemDangFugBixs-Core
 
-Go backend server for GameFeel Unity game.
+A scalable multi-game platform backend core with PlayFab integration, tiered RBAC, and centralized identity management.
 
 ## Tech Stack
+
 - **Framework**: Fiber (Go web framework)
 - **Database**: Supabase (PostgreSQL)
 - **Auth**: JWT (PlayFab session token validation)
@@ -11,7 +12,7 @@ Go backend server for GameFeel Unity game.
 
 ## Project Structure
 
-```
+```text
 .
 ├── cmd/
 │   └── server/           # Application entry point
@@ -31,7 +32,7 @@ Go backend server for GameFeel Unity game.
 
 ## Prerequisites
 
-- Go 1.22+
+- Go 1.25.1+
 - Supabase account
 - Stripe account (test mode)
 
@@ -61,11 +62,13 @@ Server will start on `http://localhost:8080`
 ## Development
 
 ### Run locally
+
 ```bash
 go run cmd/server/main.go
 ```
 
 ### Run with hot reload (air)
+
 ```bash
 # Install air
 go install github.com/cosmtrek/air@latest
@@ -75,12 +78,15 @@ air
 ```
 
 ### Run tests
+
 ```bash
 go test ./...
 ```
 
 ### Build Verification
+
 To ensure everything is correct before committing, run the build verification script:
+
 ```powershell
 ./scripts/verify_build.ps1
 ```
@@ -88,6 +94,7 @@ To ensure everything is correct before committing, run the build verification sc
 For detailed testing documentation, see [docs/TESTING.md](docs/TESTING.md).
 
 ### Build for production
+
 ```bash
 go build -o bin/server cmd/server/main.go
 ```
@@ -110,8 +117,8 @@ See [docs/api.md](docs/api.md) for full API documentation.
 ### Docker
 
 ```bash
-docker build -t gamefeel-backend .
-docker run -p 8080:8080 --env-file .env gamefeel-backend
+docker build -t nhemdangfugbixs-core .
+docker run -p 8080:8080 --env-file .env nhemdangfugbixs-core
 ```
 
 ### Fly.io
@@ -126,6 +133,7 @@ fly deploy
 See `configs/.env.example` for all required environment variables.
 
 Key variables:
+
 - `SUPABASE_DATABASE_URL` - PostgreSQL connection string
 - `SUPABASE_SERVICE_ROLE_KEY` - Supabase admin key
 - `JWT_SECRET` - JWT signing secret

@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/models"
-	repository_mock "github.com/NhomNhem/HollowWilds-Backend/internal/mocks/repository"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/models"
+	repository_mock "github.com/NhomNhem/NhemDangFugBixs-Core/internal/mocks/repository"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

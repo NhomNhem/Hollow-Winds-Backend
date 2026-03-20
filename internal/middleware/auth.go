@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/NhomNhem/HollowWilds-Backend/internal/domain/models"
+	"github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -30,7 +30,7 @@ func AuthMiddleware() fiber.Handler {
 
 		// Extract token from "Bearer <token>"
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		
+
 		// Verify JWT
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			return []byte(jwtSecret), nil
@@ -60,6 +60,7 @@ func AuthMiddleware() fiber.Handler {
 		// Store user info in context for downstream handlers
 		c.Locals("userId", claims["userId"])
 		c.Locals("playfabId", claims["playfabId"])
+		c.Locals("role", claims["role"])
 
 		return c.Next()
 	}

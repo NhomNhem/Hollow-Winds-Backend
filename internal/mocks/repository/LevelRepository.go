@@ -5,7 +5,7 @@ package repository_mock
 import (
 	context "context"
 
-	models "github.com/NhomNhem/HollowWilds-Backend/internal/domain/models"
+	models "github.com/NhomNhem/NhemDangFugBixs-Core/internal/domain/models"
 	mock "github.com/stretchr/testify/mock"
 
 	uuid "github.com/google/uuid"
